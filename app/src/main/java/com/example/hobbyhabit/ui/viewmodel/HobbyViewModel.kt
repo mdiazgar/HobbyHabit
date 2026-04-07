@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -50,4 +53,24 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
+
+    fun deleteSession(session: Session) {
+        viewModelScope.launch {
+            repository.deleteSession(session)
+        }
+    }
+
+    private val _editingSession = mutableStateOf<Session?>(null)
+    val editingSession: State<Session?> = _editingSession
+
+    fun startEditingSession(session: Session?) {
+        _editingSession.value = session
+    }
+
+    fun updateSession(session: Session) {
+        viewModelScope.launch {
+            repository.updateSession(session) // implement this in your repository
+        }
+    }
+
 }

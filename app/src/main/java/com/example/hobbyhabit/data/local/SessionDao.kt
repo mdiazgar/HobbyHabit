@@ -15,6 +15,8 @@ interface SessionDao {
     @Insert
     suspend fun insertSession(session: Session)
 
+    @Update
+    suspend fun updateSession(session: Session)
     @Delete
     suspend fun deleteSession(session: Session)
 }
