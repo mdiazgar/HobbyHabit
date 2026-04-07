@@ -46,6 +46,18 @@ import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.widget.Toast
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.ui.unit.dp
+// import androidx.compose.ui.text.input.KeyboardOptions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +72,7 @@ fun HobbyDetailScreen(
     val weeklyCount by viewModel.getSessionCountThisWeek(hobbyId).collectAsState(initial = 0)
     var showDialog by remember { mutableStateOf(false) }
 
+    //Top navigation of page
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,6 +114,7 @@ fun HobbyDetailScreen(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     ) {
+                        //Top green card of progress
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("This Week", style = MaterialTheme.typography.labelLarge)
                             Spacer(Modifier.height(4.dp))
@@ -136,7 +150,7 @@ fun HobbyDetailScreen(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-
+            //Session listings
             if (sessions.isEmpty()) {
                 item {
                     Text(
@@ -164,6 +178,7 @@ fun HobbyDetailScreen(
     }
 }
 
+//Session card
 @Composable
 fun SessionItem(session: Session) {
     val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
@@ -173,17 +188,26 @@ fun SessionItem(session: Session) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("${session.durationMinutes} min", fontWeight = FontWeight.SemiBold)
                 Text(
-                    fmt.format(Date(session.timestamp)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = if (session.notes.isNotBlank()) session.notes else "No notes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    "${session.durationMinutes} min",
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-            if (session.notes.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(session.notes, style = MaterialTheme.typography.bodySmall)
-            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                fmt.format(Date(session.timestamp)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -192,12 +216,22 @@ fun SessionItem(session: Session) {
 fun LogSessionDialog(onDismiss: () -> Unit, onConfirm: (Int, String) -> Unit) {
     var duration by remember { mutableStateOf("60") }
     var notes by remember { mutableStateOf("") }
-
+    var selectedDateTime by remember { mutableStateOf<LocalDateTime?>(null) }
+    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log Session") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3,
+                    isError = notes.isBlank()
+
+                )
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { if (it.all(Char::isDigit)) duration = it },
@@ -206,17 +240,55 @@ fun LogSessionDialog(onDismiss: () -> Unit, onConfirm: (Int, String) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
+                Button(
+                    onClick = {
+                        if (notes.isBlank()) {
+                            Toast.makeText(context, "Please enter notes first", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val now = LocalDate.now()
+
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                val pickedDate = LocalDate.of(year, month + 1, day)
+
+                                TimePickerDialog(
+                                    context,
+                                    { _, hour, minute ->
+                                        selectedDateTime = pickedDate.atTime(hour, minute)
+                                    },
+                                    12,
+                                    0,
+                                    true
+                                ).show()
+                            },
+                            now.year,
+                            now.monthValue - 1,
+                            now.dayOfMonth
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        selectedDateTime?.format(
+                            DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+                        ) ?: "Select Date & Time"
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(duration.toIntOrNull() ?: 30, notes) }) {
+            TextButton(
+                onClick = {
+                    if (notes.isBlank()) {
+                        Toast.makeText(context, "Notes are required", Toast.LENGTH_SHORT).show()
+                        return@TextButton
+                    }
+
+                    onConfirm(duration.toIntOrNull() ?: 30, notes)
+                }
+            ) {
                 Text("Log")
             }
         },

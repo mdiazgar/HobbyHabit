@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 
+//Adding a new hobby page
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddHobbyScreen(viewModel: HobbyViewModel, onBack: () -> Unit) {
