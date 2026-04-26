@@ -2,7 +2,11 @@ package com.example.hobbyhabit.data.repository
 
 import com.example.hobbyhabit.data.remote.EventbriteApi
 import com.example.hobbyhabit.data.remote.EventbriteEvent
-
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventStatus
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 class EventRepository(private val api: EventbriteApi) {
 
     suspend fun searchEvents(
@@ -10,7 +14,7 @@ class EventRepository(private val api: EventbriteApi) {
         query: String,
         lat: Double?,
         lng: Double?
-    ): Result<List<EventbriteEvent>> {
+    ): Result<List<Event>> {   // ✅ RETURN LOCAL MODEL
         return try {
             val response = api.searchEvents(
                 token = "Bearer $token",
@@ -18,13 +22,50 @@ class EventRepository(private val api: EventbriteApi) {
                 lat = lat,
                 lng = lng
             )
+
             if (response.isSuccessful) {
-                Result.success(response.body()?.events ?: emptyList())
+                val events = response.body()?.events
+                    ?.mapNotNull { it.toLocalEvent() } // ✅ CONVERT HERE
+                    ?: emptyList()
+
+                Result.success(events)
             } else {
-                Result.failure(Exception("API error: " + response.code()))
+                Result.failure(Exception("API error: ${response.code()}"))
             }
+
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    // 🔁 API → Local conversion
+    private fun EventbriteEvent.toLocalEvent(): Event? {
+        return Event(
+            id = this.id ?: return null,
+            name = this.name?.text ?: "No title",
+            location = this.venue?.address?.localized_address_display ?: "Unknown",
+            dateTime = parseDate(this.start?.local),
+            durationMinutes = null,
+            url = this.url,
+            status = EventStatus.UPCOMING
+        )
+    }
+
+    // 🕒 Date parser
+    private fun parseDate(dateString: String?): Long {
+        return try {
+            if (dateString == null) return System.currentTimeMillis()
+
+            val formatter = DateTimeFormatter.ISO_DATE_TIME
+            val localDateTime = LocalDateTime.parse(dateString, formatter)
+
+            localDateTime
+                .atZone(ZoneId.systemDefault())
+                .toInstant()
+                .toEpochMilli()
+
+        } catch (e: Exception) {
+            System.currentTimeMillis()
         }
     }
 }

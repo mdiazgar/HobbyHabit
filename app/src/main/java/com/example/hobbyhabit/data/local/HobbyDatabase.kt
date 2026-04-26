@@ -6,14 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [Hobby::class, Session::class],
-    version = 1,
+    entities = [Hobby::class, Session::class, Event::class],
+    version = 2,
     exportSchema = false
 )
 abstract class HobbyDatabase : RoomDatabase() {
 
     abstract fun hobbyDao(): HobbyDao
     abstract fun sessionDao(): SessionDao
+    abstract fun eventDao(): EventDao
 
     companion object {
         @Volatile
@@ -25,7 +26,7 @@ abstract class HobbyDatabase : RoomDatabase() {
                     context.applicationContext,
                     HobbyDatabase::class.java,
                     "hobby_database"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }
