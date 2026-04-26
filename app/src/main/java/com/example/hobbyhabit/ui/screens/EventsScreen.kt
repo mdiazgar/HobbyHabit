@@ -1,5 +1,8 @@
 package com.example.hobbyhabit.ui.screens
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
@@ -9,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -44,7 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.hobbyhabit.BuildConfig
-import com.example.hobbyhabit.data.remote.EventbriteEvent
+import com.example.hobbyhabit.data.remote.TicketmasterEvent
 import com.example.hobbyhabit.ui.viewmodel.EventUiState
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.google.android.gms.location.LocationServices
@@ -59,9 +62,10 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
     fun fetchWithLocation() {
         val client = LocationServices.getFusedLocationProviderClient(context)
         client.lastLocation.addOnSuccessListener { loc ->
-            viewModel.searchEvents(BuildConfig.EVENTBRITE_TOKEN, hobbyName, loc?.latitude, loc?.longitude)
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName,
+                loc?.latitude, loc?.longitude)
         }.addOnFailureListener {
-            viewModel.searchEvents(BuildConfig.EVENTBRITE_TOKEN, hobbyName)
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
         }
     }
 
@@ -69,7 +73,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) fetchWithLocation()
-        else viewModel.searchEvents(BuildConfig.EVENTBRITE_TOKEN, hobbyName)
+        else viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
     }
 
     LaunchedEffect(Unit) {
@@ -77,7 +81,6 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
             val hasPermission = ContextCompat.checkSelfPermission(
                 context, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
-
             if (hasPermission) fetchWithLocation()
             else locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
@@ -95,11 +98,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
             )
         }
     ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when (val state = uiState) {
                 is EventUiState.Idle,
                 is EventUiState.Loading -> {
@@ -107,22 +106,15 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                 }
                 is EventUiState.Success -> {
                     if (state.events.isEmpty()) {
-                        Text(
-                            "No $hobbyName events found nearby.",
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        Text("No $hobbyName events found nearby.",
+                            modifier = Modifier.align(Alignment.Center))
                     } else {
                         LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
-                            items(
-                                state.events,
-                                key = { it.id ?: it.hashCode().toString() }
-                            ) { event ->
+                            items(state.events, key = { it.id ?: it.hashCode().toString() }) { event ->
                                 EventCard(event)
                             }
                         }
@@ -130,25 +122,19 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                 }
                 is EventUiState.Error -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
+                        modifier = Modifier.fillMaxSize().padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Could not load events", style = MaterialTheme.typography.titleMedium)
+                        Text("Could not load events",
+                            style = MaterialTheme.typography.titleMedium)
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            state.message,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(state.message, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = {
-                            viewModel.searchEvents(BuildConfig.EVENTBRITE_TOKEN, hobbyName)
-                        }) {
-                            Text("Retry")
-                        }
+                            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
+                        }) { Text("Retry") }
                     }
                 }
             }
@@ -157,31 +143,48 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
 }
 
 @Composable
-fun EventCard(event: EventbriteEvent) {
+fun EventCard(event: TicketmasterEvent) {
+    val context = LocalContext.current
+    val venue = event.embedded?.venues?.firstOrNull()
+    val venueName = venue?.name
+    val venueLocation = listOfNotNull(venue?.city?.name, venue?.state?.name).joinToString(", ")
+    val date = event.dates?.start?.localDate
+    val time = event.dates?.start?.localTime?.take(5)
+    val dateString = listOfNotNull(date, time).joinToString(" at ")
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                event.url?.let { url ->
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    context.startActivity(intent)
+                }
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                event.name?.text ?: "Unnamed Event",
+                event.name ?: "Unnamed Event",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(Modifier.height(6.dp))
-            event.start?.local?.let {
-                Text("Date: $it", style = MaterialTheme.typography.bodySmall)
+            if (dateString.isNotBlank()) {
+                Text("📅 $dateString", style = MaterialTheme.typography.bodySmall)
             }
-            event.venue?.name?.let { venueName ->
+            if (!venueName.isNullOrBlank()) {
+                Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
+                    Icon(Icons.Default.LocationOn, contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                        tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
-                    Text(venueName, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        listOfNotNull(venueName, venueLocation.ifBlank { null })
+                            .joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
