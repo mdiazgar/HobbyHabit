@@ -35,4 +35,10 @@ class HobbyRepository(
     suspend fun deleteHobby(hobby: Hobby) = hobbyDao.deleteHobby(hobby)
 
     suspend fun logSession(session: Session) = sessionDao.insertSession(session)
+
+    suspend fun deleteSession(session: Session) = sessionDao.deleteSession(session)
+
+    suspend fun updateSession(session: Session) = sessionDao.updateSession(session)
+
+
 }

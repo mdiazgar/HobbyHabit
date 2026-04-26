@@ -5,11 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.material3.Scaffold
 import androidx.navigation.compose.rememberNavController
 import com.example.hobbyhabit.navigation.NavGraph
 import com.example.hobbyhabit.ui.theme.HobbyHabitTheme
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
+import com.example.hobbyhabit.ui.components.BottomBar
 import com.example.hobbyhabit.ui.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
@@ -24,12 +26,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             HobbyHabitTheme {
                 val navController = rememberNavController()
-                NavGraph(
-                    navController = navController,
-                    hobbyViewModel = hobbyViewModel,
-                    eventViewModel = eventViewModel,
-                    userViewModel = userViewModel
-                )
+                Scaffold(
+                    bottomBar = {
+                        BottomBar(navController)
+                    }
+                ) { padding ->
+
+                    NavGraph(
+                        navController = navController,
+                        hobbyViewModel = hobbyViewModel,
+                        eventViewModel = eventViewModel,
+                        userViewModel = userViewModel
+                    )
+                }
             }
         }
     }
