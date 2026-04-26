@@ -16,7 +16,8 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "EVENTBRITE_TOKEN", "\"YOUR_TOKEN_HERE\"")
+        buildConfigField("String", "EVENTBRITE_TOKEN","\"${properties["EVENTBRITE_TOKEN"]}\""
+        )
     }
 
     buildTypes {

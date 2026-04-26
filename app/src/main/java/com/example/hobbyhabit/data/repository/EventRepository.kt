@@ -22,6 +22,9 @@ class EventRepository(private val api: EventbriteApi) {
                 location = null
 
             )
+            android.util.Log.d("EVENT_API", "URL: ${response.raw().request.url}")
+            android.util.Log.d("EVENT_API", "CODE: ${response.code()}")
+            android.util.Log.d("EVENT_API", "ERROR: ${response.errorBody()?.string()}")
 
             if (response.isSuccessful) {
                 val events = response.body()?.events
@@ -68,4 +71,5 @@ class EventRepository(private val api: EventbriteApi) {
             System.currentTimeMillis()
         }
     }
+
 }
