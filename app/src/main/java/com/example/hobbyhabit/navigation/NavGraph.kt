@@ -2,6 +2,7 @@ package com.example.hobbyhabit.navigation
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -41,12 +42,14 @@ fun NavGraph(
     navController: NavHostController,
     hobbyViewModel: HobbyViewModel,
     eventViewModel: EventViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    modifier: Modifier = Modifier
 ) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Home.route,
+        modifier = modifier
     ) {
 
         // ---------------- HOME TAB ----------------
