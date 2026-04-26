@@ -10,12 +10,15 @@ import com.example.hobbyhabit.ui.screens.AddHobbyScreen
 import com.example.hobbyhabit.ui.screens.EventsScreen
 import com.example.hobbyhabit.ui.screens.HobbyDetailScreen
 import com.example.hobbyhabit.ui.screens.HomeScreen
+import com.example.hobbyhabit.ui.screens.ProfileScreen
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
+import com.example.hobbyhabit.ui.viewmodel.UserViewModel
 
 sealed class Screen(val route: String) {
     object Home : Screen("home")
     object AddHobby : Screen("add_hobby")
+    object Profile : Screen("profile")
     object HobbyDetail : Screen("hobby_detail/{hobbyId}") {
         fun createRoute(hobbyId: Int) = "hobby_detail/$hobbyId"
     }
@@ -28,7 +31,8 @@ sealed class Screen(val route: String) {
 fun NavGraph(
     navController: NavHostController,
     hobbyViewModel: HobbyViewModel,
-    eventViewModel: EventViewModel
+    eventViewModel: EventViewModel,
+    userViewModel: UserViewModel
 ) {
     NavHost(navController = navController, startDestination = Screen.Home.route) {
 
@@ -38,13 +42,21 @@ fun NavGraph(
                 onAddHobby = { navController.navigate(Screen.AddHobby.route) },
                 onHobbyClick = { hobby ->
                     navController.navigate(Screen.HobbyDetail.createRoute(hobby.id))
-                }
+                },
+                onProfileClick = { navController.navigate(Screen.Profile.route) }
             )
         }
 
         composable(Screen.AddHobby.route) {
             AddHobbyScreen(
                 viewModel = hobbyViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                viewModel = userViewModel,
                 onBack = { navController.popBackStack() }
             )
         }

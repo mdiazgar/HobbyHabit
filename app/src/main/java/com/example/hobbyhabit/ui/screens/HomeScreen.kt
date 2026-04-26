@@ -13,11 +13,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -39,7 +41,8 @@ import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 fun HomeScreen(
     viewModel: HobbyViewModel,
     onAddHobby: () -> Unit,
-    onHobbyClick: (Hobby) -> Unit
+    onHobbyClick: (Hobby) -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val hobbies by viewModel.hobbies.collectAsState()
 
@@ -47,6 +50,11 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("HobbyHabit", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
@@ -126,7 +134,7 @@ fun HobbyCard(hobby: Hobby, viewModel: HobbyViewModel, onClick: () -> Unit) {
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth(),
                 color = if (progress >= 1f) MaterialTheme.colorScheme.tertiary
-                        else MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.primary
             )
             if (progress >= 1f) {
                 Spacer(Modifier.height(4.dp))

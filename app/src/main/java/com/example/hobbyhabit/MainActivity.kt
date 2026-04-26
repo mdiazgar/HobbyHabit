@@ -10,11 +10,13 @@ import com.example.hobbyhabit.navigation.NavGraph
 import com.example.hobbyhabit.ui.theme.HobbyHabitTheme
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
+import com.example.hobbyhabit.ui.viewmodel.UserViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val hobbyViewModel: HobbyViewModel by viewModels()
     private val eventViewModel: EventViewModel by viewModels()
+    private val userViewModel: UserViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,7 +27,8 @@ class MainActivity : ComponentActivity() {
                 NavGraph(
                     navController = navController,
                     hobbyViewModel = hobbyViewModel,
-                    eventViewModel = eventViewModel
+                    eventViewModel = eventViewModel,
+                    userViewModel = userViewModel
                 )
             }
         }
