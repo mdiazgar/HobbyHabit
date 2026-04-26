@@ -19,8 +19,8 @@ class EventRepository(private val api: EventbriteApi) {
             val response = api.searchEvents(
                 token = "Bearer $token",
                 query = query,
-                lat = lat,
-                lng = lng
+                location = null
+
             )
 
             if (response.isSuccessful) {

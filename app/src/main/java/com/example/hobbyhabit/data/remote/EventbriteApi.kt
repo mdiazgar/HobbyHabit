@@ -11,8 +11,7 @@ interface EventbriteApi {
     suspend fun searchEvents(
         @Header("Authorization") token: String,
         @Query("q") query: String,
-        @Query("location.latitude") lat: Double?,
-        @Query("location.longitude") lng: Double?,
+        @Query("location.address") location: String? = null,
         @Query("location.within") within: String = "20km",
         @Query("expand") expand: String = "venue"
     ): Response<EventbriteResponse>
