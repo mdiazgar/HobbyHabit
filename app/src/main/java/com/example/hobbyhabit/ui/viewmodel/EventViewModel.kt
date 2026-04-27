@@ -24,14 +24,48 @@ class EventViewModel : ViewModel() {
     private val _uiState = MutableStateFlow<EventUiState>(EventUiState.Idle)
     val uiState: StateFlow<EventUiState> = _uiState.asStateFlow()
 
+    // 1. selected event (for popup)
+    private val _selectedEvent = MutableStateFlow<TicketmasterEvent?>(null)
+    val selectedEvent: StateFlow<TicketmasterEvent?> = _selectedEvent
+
+    // 2. dialog trigger state
+    private val _showRegisterDialog = MutableStateFlow(false)
+    val showRegisterDialog: StateFlow<Boolean> = _showRegisterDialog
+
     fun searchEvents(apiKey: String, query: String, lat: Double? = null, lng: Double? = null) {
         _uiState.value = EventUiState.Loading
+
         viewModelScope.launch {
             val result = repository.searchEvents(apiKey, query, lat, lng)
+
             _uiState.value = result.fold(
                 onSuccess = { EventUiState.Success(it) },
                 onFailure = { EventUiState.Error(it.message ?: "Unknown error") }
             )
         }
+    }
+
+    // when user clicks event card
+    fun onEventClicked(event: TicketmasterEvent) {
+        _selectedEvent.value = event
+        _showRegisterDialog.value = true
+    }
+
+    fun dismissDialog() {
+        _showRegisterDialog.value = false
+        _selectedEvent.value = null
+    }
+
+    // THIS is where Room saving will happen later
+    fun confirmRegisterEvent() {
+        val event = _selectedEvent.value ?: return
+
+        viewModelScope.launch {
+            // TODO: map TicketmasterEvent → Room Event
+            // eventDao.insert(...)
+        }
+
+        _showRegisterDialog.value = false
+        _selectedEvent.value = null
     }
 }

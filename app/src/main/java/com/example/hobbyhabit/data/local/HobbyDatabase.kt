@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [Hobby::class, Session::class, User::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class HobbyDatabase : RoomDatabase() {

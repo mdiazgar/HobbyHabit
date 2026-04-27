@@ -1,7 +1,5 @@
 package com.example.hobbyhabit.ui.screens
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.clickable
 import android.Manifest
 import android.annotation.SuppressLint
@@ -33,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,6 +50,12 @@ import com.example.hobbyhabit.data.remote.TicketmasterEvent
 import com.example.hobbyhabit.ui.viewmodel.EventUiState
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.google.android.gms.location.LocationServices
+import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +63,8 @@ import com.google.android.gms.location.LocationServices
 fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-
+    val selectedEvent by viewModel.selectedEvent.collectAsState()
+    val showDialog by viewModel.showRegisterDialog.collectAsState()
     fun fetchWithLocation() {
         val client = LocationServices.getFusedLocationProviderClient(context)
         client.lastLocation.addOnSuccessListener { loc ->
@@ -87,6 +93,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
     }
 
     Scaffold(
+
         topBar = {
             TopAppBar(
                 title = { Text("$hobbyName Events") },
@@ -110,12 +117,14 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                             modifier = Modifier.align(Alignment.Center))
                     } else {
                         LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
                             items(state.events, key = { it.id ?: it.hashCode().toString() }) { event ->
-                                EventCard(event)
+                                EventCard(event, viewModel) // ✅ FIXED LINE
                             }
                         }
                     }
@@ -138,54 +147,66 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                     }
                 }
             }
+            if (showDialog && selectedEvent != null) {
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissDialog() },
+                    title = { Text("Register Event?") },
+                    text = {
+                        Text("Did you register for ${selectedEvent?.name}?")
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            viewModel.confirmRegisterEvent()
+                        }) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = {
+                            viewModel.dismissDialog()
+                        }) {
+                            Text("No")
+                        }
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun EventCard(event: TicketmasterEvent) {
-    val context = LocalContext.current
+fun EventCard(event: TicketmasterEvent, viewModel: EventViewModel) {
     val venue = event.embedded?.venues?.firstOrNull()
     val venueName = venue?.name
     val venueLocation = listOfNotNull(venue?.city?.name, venue?.state?.name).joinToString(", ")
     val date = event.dates?.start?.localDate
     val time = event.dates?.start?.localTime?.take(5)
     val dateString = listOfNotNull(date, time).joinToString(" at ")
-
+    val context = LocalContext.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                event.url?.let { url ->
+                val url = event.url
+
+                if (url != null) {
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
                 }
-            },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+
+                // 2. THEN SHOW DIALOG
+                viewModel.onEventClicked(event)            }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                event.name ?: "Unnamed Event",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(event.name ?: "Unnamed Event")
             Spacer(Modifier.height(6.dp))
+
             if (dateString.isNotBlank()) {
-                Text("📅 $dateString", style = MaterialTheme.typography.bodySmall)
+                Text("📅 $dateString")
             }
+
             if (!venueName.isNullOrBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        listOfNotNull(venueName, venueLocation.ifBlank { null })
-                            .joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text("$venueName · $venueLocation")
             }
         }
     }
