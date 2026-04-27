@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +33,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -55,17 +55,22 @@ import com.google.android.gms.location.LocationServices
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Unit) {
+fun EventsScreen(
+    hobbyName: String,
+    category: String,           // Ticketmaster classificationName
+    viewModel: EventViewModel,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
     fun fetchWithLocation() {
         val client = LocationServices.getFusedLocationProviderClient(context)
         client.lastLocation.addOnSuccessListener { loc ->
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName,
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category,
                 loc?.latitude, loc?.longitude)
         }.addOnFailureListener {
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
         }
     }
 
@@ -73,7 +78,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) fetchWithLocation()
-        else viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
+        else viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
     }
 
     LaunchedEffect(Unit) {
@@ -114,7 +119,8 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
-                            items(state.events, key = { it.id ?: it.hashCode().toString() }) { event ->
+                            items(state.events,
+                                key = { it.id ?: it.hashCode().toString() }) { event ->
                                 EventCard(event)
                             }
                         }
@@ -133,7 +139,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(16.dp))
                         Button(onClick = {
-                            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
+                            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
                         }) { Text("Retry") }
                     }
                 }
