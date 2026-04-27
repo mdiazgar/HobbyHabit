@@ -81,6 +81,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
         if (granted) fetchWithLocation()
         else viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
     }
+    val showPicker by viewModel.showHobbyPicker.collectAsState()
 
     LaunchedEffect(Unit) {
         if (uiState == EventUiState.Idle) {
@@ -170,6 +171,32 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                     }
                 )
             }
+            if (showPicker) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissHobbyPicker() },
+                title = { Text("Choose Hobby") },
+                text = {
+                    Text("Select a hobby to attach this event to")
+                    // later we replace this with LazyColumn of hobbies
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        // TODO: save event to selected hobby
+                        viewModel.dismissHobbyPicker()
+                    }) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = {
+                        viewModel.dismissHobbyPicker()
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         }
     }
 }

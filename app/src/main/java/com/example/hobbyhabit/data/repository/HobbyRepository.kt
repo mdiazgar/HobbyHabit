@@ -12,12 +12,29 @@ class HobbyRepository(
     private val sessionDao: SessionDao
 ) {
 
-    fun getAllHobbies(): Flow<List<Hobby>> = hobbyDao.getAllHobbies()
+    fun getAllHobbies(): Flow<List<Hobby>> {
+        return hobbyDao.getAllHobbies()
+    }
 
-    fun getHobbyById(id: Int): Flow<Hobby?> = hobbyDao.getHobbyById(id)
+    fun getHobbyById(id: Int): Flow<Hobby?> {
+        return hobbyDao.getHobbyById(id)
+    }
 
-    fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
-        sessionDao.getSessionsForHobby(hobbyId)
+    suspend fun addHobby(hobby: Hobby) {
+        hobbyDao.insertHobby(hobby)
+    }
+
+    suspend fun deleteHobby(hobby: Hobby) {
+        hobbyDao.deleteHobby(hobby)
+    }
+
+    // -------------------------
+    // SESSIONS
+    // -------------------------
+
+    fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> {
+        return sessionDao.getSessionsForHobby(hobbyId)
+    }
 
     fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> {
         val weekStart = Calendar.getInstance().apply {
@@ -27,18 +44,19 @@ class HobbyRepository(
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
+
         return sessionDao.getSessionCountThisWeek(hobbyId, weekStart)
     }
 
-    suspend fun addHobby(hobby: Hobby) = hobbyDao.insertHobby(hobby)
+    suspend fun logSession(session: Session) {
+        sessionDao.insertSession(session)
+    }
 
-    suspend fun deleteHobby(hobby: Hobby) = hobbyDao.deleteHobby(hobby)
+    suspend fun deleteSession(session: Session) {
+        sessionDao.deleteSession(session)
+    }
 
-    suspend fun logSession(session: Session) = sessionDao.insertSession(session)
-
-    suspend fun deleteSession(session: Session) = sessionDao.deleteSession(session)
-
-    suspend fun updateSession(session: Session) = sessionDao.updateSession(session)
-
-
+    suspend fun updateSession(session: Session) {
+        sessionDao.updateSession(session)
+    }
 }

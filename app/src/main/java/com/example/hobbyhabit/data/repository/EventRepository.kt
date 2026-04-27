@@ -1,49 +1,21 @@
 package com.example.hobbyhabit.data.repository
 
-import com.example.hobbyhabit.data.remote.TicketmasterApi
-import com.example.hobbyhabit.data.remote.TicketmasterEvent
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventDao
+import kotlinx.coroutines.flow.Flow
 
-class EventRepository(private val api: TicketmasterApi) {
+class EventRepository(
+    private val eventDao: EventDao
+) {
+    fun getUpcomingEvents(): Flow<List<Event>> =
+        eventDao.getUpcomingEvents()
 
-    // Mock fallback events used when API returns empty or fails
-    private fun getMockEvents(query: String): List<TicketmasterEvent> {
-        val q = query.replaceFirstChar { it.uppercase() }
-        return listOf(
-            TicketmasterEvent(id = "1", name = "$q for Beginners — Weekend Workshop",
-                url = "https://www.ticketmaster.com", dates = null, embedded = null),
-            TicketmasterEvent(id = "2", name = "Introduction to $q — Free Taster Session",
-                url = "https://www.ticketmaster.com", dates = null, embedded = null),
-            TicketmasterEvent(id = "3", name = "$q Masterclass with Local Artists",
-                url = "https://www.ticketmaster.com", dates = null, embedded = null),
-            TicketmasterEvent(id = "4", name = "$q Social — Meet Fellow Enthusiasts",
-                url = "https://www.ticketmaster.com", dates = null, embedded = null),
-            TicketmasterEvent(id = "5", name = "Advanced $q Techniques — Half Day Course",
-                url = "https://www.ticketmaster.com", dates = null, embedded = null)
-        )
-    }
+    fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
+        eventDao.getEventsForHobby(hobbyId)
 
-    suspend fun searchEvents(
-        apiKey: String,
-        query: String,
-        lat: Double?,
-        lng: Double?
-    ): Result<List<TicketmasterEvent>> {
-        return try {
-            val latlong = if (lat != null && lng != null) "$lat,$lng" else null
-            val response = api.searchEvents(
-                apiKey = apiKey,
-                keyword = query,
-                latlong = latlong
-            )
-            if (response.isSuccessful) {
-                val events = response.body()?.embedded?.events ?: emptyList()
-                if (events.isEmpty()) Result.success(getMockEvents(query))
-                else Result.success(events)
-            } else {
-                Result.success(getMockEvents(query))
-            }
-        } catch (e: Exception) {
-            Result.success(getMockEvents(query))
-        }
-    }
+    suspend fun insert(event: Event) =
+        eventDao.insert(event)
+
+    suspend fun update(event: Event) =
+        eventDao.update(event)
 }

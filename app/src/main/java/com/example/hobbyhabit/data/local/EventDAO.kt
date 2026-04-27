@@ -1,21 +1,20 @@
 package com.example.hobbyhabit.data.local
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEvent(event: Event)
+    suspend fun insert(event: Event)
 
     @Update
-    suspend fun updateEvent(event: Event)
+    suspend fun update(event: Event)
 
-    @Query("SELECT * FROM events WHERE status = :status")
-    fun getEventsByStatus(status: EventStatus): Flow<List<Event>>
+    @Query("SELECT * FROM events WHERE hobbyId = :hobbyId")
+    fun getEventsForHobby(hobbyId: Int): Flow<List<Event>>
+
+    @Query("SELECT * FROM events WHERE status = 'UPCOMING'")
+    fun getUpcomingEvents(): Flow<List<Event>>
 }

@@ -5,14 +5,17 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "events")
 data class Event(
-    @PrimaryKey val id: String, // from Eventbrite
+    @PrimaryKey val id: String,
+    val hobbyId: Int,
+
     val name: String,
     val location: String,
     val dateTime: Long,
     val durationMinutes: Int?,
     val url: String?,
     val status: EventStatus,
-    val source: EventSource,
+
+    val source: EventSource = EventSource.TICKETMASTER
 )
 
 enum class EventStatus {
