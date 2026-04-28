@@ -72,7 +72,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun EventsScreen(
     hobbyName: String,
-    category: String,
+    category: String?,
     viewModel: EventViewModel,
     onBack: () -> Unit
 ) {
@@ -106,7 +106,7 @@ fun EventsScreen(
     fun searchWithCoords(lat: Double?, lng: Double?, statusText: String, located: Boolean) {
         hasLocation = located
         locationStatus = statusText
-        viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, lat, lng)
+        viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category?:"", lat, lng)
     }
 
     fun fetchGpsLocation() {
@@ -117,12 +117,12 @@ fun EventsScreen(
             } else {
                 hasLocation = false
                 locationStatus = "Location unavailable — tap to set city"
-                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
+                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category ?: "", null, null)
             }
         }.addOnFailureListener {
             hasLocation = false
             locationStatus = "Location unavailable — tap to set city"
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category ?: "", null, null)
         }
     }
 
@@ -133,7 +133,7 @@ fun EventsScreen(
         else {
             hasLocation = false
             locationStatus = "Location denied — tap to set city"
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category ?: "", null, null)
         }
     }
 
@@ -280,7 +280,7 @@ fun EventsScreen(
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = {
                                 android.util.Log.d("EVENT_DEBUG", "SIGNUP CLICKED")
-                                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
+                                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category ?: "")
                             }) { Text("Retry") }
                         }
                     }

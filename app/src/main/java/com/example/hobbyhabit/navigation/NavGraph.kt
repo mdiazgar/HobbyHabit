@@ -1,6 +1,7 @@
 package com.example.hobbyhabit.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,6 +20,7 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object AddHobby : Screen("add_hobby")
     object Profile : Screen("profile")
+    object EventBrowser : Screen("event_browser")
     object HobbyDetail : Screen("hobby_detail/{hobbyId}") {
         fun createRoute(hobbyId: Int) = "hobby_detail/$hobbyId"
     }
@@ -34,9 +36,15 @@ fun NavGraph(
     navController: NavHostController,
     hobbyViewModel: HobbyViewModel,
     eventViewModel: EventViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    modifier: Modifier = Modifier
+
 ) {
-    NavHost(navController = navController, startDestination = Screen.Home.route) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Home.route,
+        modifier = modifier
+    ) {
 
         composable(Screen.Home.route) {
             HomeScreen(
@@ -91,6 +99,14 @@ fun NavGraph(
                 hobbyName = hobbyName,
                 category = category,
                 viewModel = eventViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.EventBrowser.route) {
+            EventsScreen(
+                hobbyName = "", // better design
+                viewModel = eventViewModel,
+                category = "",
                 onBack = { navController.popBackStack() }
             )
         }

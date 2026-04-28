@@ -56,13 +56,23 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             HobbyHabitTheme {
+
                 val navController = rememberNavController()
-                NavGraph(
-                    navController = navController,
-                    hobbyViewModel = hobbyViewModel,
-                    eventViewModel = eventViewModel,
-                    userViewModel = userViewModel
-                )
+
+                Scaffold(
+                    bottomBar = {
+                        BottomBar(navController)
+                    }
+                ) { innerPadding ->
+
+                    NavGraph(
+                        navController = navController,
+                        hobbyViewModel = hobbyViewModel,
+                        eventViewModel = eventViewModel,
+                        userViewModel = userViewModel,
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }

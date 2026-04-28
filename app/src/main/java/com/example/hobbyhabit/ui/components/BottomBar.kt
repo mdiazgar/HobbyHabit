@@ -34,12 +34,5 @@ fun BottomBar(navController: NavHostController) {
             icon = { Icon(Icons.Default.Search, contentDescription = "Events") },
             label = { Text("Events") }
         )
-
-        NavigationBarItem(
-            selected = false,
-            onClick = { navController.navigate("my_events") },
-            icon = { Icon(Icons.Default.Event, contentDescription = "My Events") },
-            label = { Text("My Events") }
-        )
     }
 }
