@@ -40,7 +40,8 @@ class MainActivity : ComponentActivity() {
 
         val hobbyRepository = HobbyRepository(
             database.hobbyDao(),
-            database.sessionDao()
+            database.sessionDao(),
+                    database.eventDao()
         )
         val eventRepository = EventRepository(database.eventDao())
         val ticketmasterRepository = TicketmasterRepository(RetrofitInstance.api)

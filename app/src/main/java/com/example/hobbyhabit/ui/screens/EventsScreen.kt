@@ -126,7 +126,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                             contentPadding = PaddingValues(vertical = 16.dp)
                         ) {
                             items(state.events, key = { it.id ?: it.hashCode().toString() }) { event ->
-                                EventCard(event, viewModel) // ✅ FIXED LINE
+                                EventCard(event, viewModel)
                             }
                         }
                     }

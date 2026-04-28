@@ -7,21 +7,21 @@ import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.data.local.HobbyDatabase
 import com.example.hobbyhabit.data.local.Session
 import com.example.hobbyhabit.data.repository.HobbyRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.compose.runtime.*
+
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = HobbyDatabase.getDatabase(application)
-    private val repository = HobbyRepository(db.hobbyDao(), db.sessionDao())
 
+    private val repository = HobbyRepository(
+        db.hobbyDao(),
+        db.sessionDao(),
+        db.eventDao()
+    )
+
+    // HOBBIES
     val hobbies: StateFlow<List<Hobby>> = repository.getAllHobbies()
         .stateIn(
             scope = viewModelScope,
@@ -34,13 +34,19 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             repository.addHobby(Hobby(name = name, weeklyGoal = weeklyGoal))
         }
     }
+    fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> =
+        repository.getWeeklyActivityCount(hobbyId)
 
     fun deleteHobby(hobby: Hobby) {
-        viewModelScope.launch { repository.deleteHobby(hobby) }
+        viewModelScope.launch {
+            repository.deleteHobby(hobby)
+        }
     }
 
-    fun getHobbyById(id: Int): Flow<Hobby?> = repository.getHobbyById(id)
+    fun getHobbyById(id: Int): Flow<Hobby?> =
+        repository.getHobbyById(id)
 
+    // SESSIONS
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         repository.getSessionsForHobby(hobbyId)
 
@@ -50,7 +56,11 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     fun logSession(hobbyId: Int, durationMinutes: Int, notes: String) {
         viewModelScope.launch {
             repository.logSession(
-                Session(hobbyId = hobbyId, durationMinutes = durationMinutes, notes = notes)
+                Session(
+                    hobbyId = hobbyId,
+                    durationMinutes = durationMinutes,
+                    notes = notes
+                )
             )
         }
     }
@@ -61,16 +71,29 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // EVENTS
+    fun getEventsForHobby(hobbyId: Int): Flow<List<com.example.hobbyhabit.data.local.Event>> =
+        repository.getEventsForHobby(hobbyId)
+
+    fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
+        repository.getEventCountForHobby(hobbyId)
+
+    // WEEKLY TOTAL (SESSIONS + EVENTS)
+
+    fun getTotalWeeklyActivity(hobbyId: Int): Flow<Int> =
+        repository.getWeeklyActivityCount(hobbyId)
+
+    // SESSION EDITING
     private val _editingSession = mutableStateOf<Session?>(null)
     val editingSession: State<Session?> = _editingSession
+
     fun startEditingSession(session: Session?) {
         _editingSession.value = session
     }
 
     fun updateSession(session: Session) {
         viewModelScope.launch {
-            repository.updateSession(session) // implement this in your repository
+            repository.updateSession(session)
         }
     }
-
 }

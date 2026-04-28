@@ -71,11 +71,19 @@ fun HobbyDetailScreen(
     onBack: () -> Unit,
     onFindEvents: (String) -> Unit
 ) {
+
     val hobby by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
     val sessions by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
-    val weeklyCount by viewModel.getSessionCountThisWeek(hobbyId).collectAsState(initial = 0)
+    val weeklyCount by viewModel.getTotalWeeklyActivity(hobbyId)
+        .collectAsState(initial = 0)
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val events by viewModel.getEventsForHobby(hobbyId)
+        .collectAsState(initial = emptyList())
+    val now = System.currentTimeMillis()
+
+    val upcomingEvents = events.filter { it.dateTime != null && it.dateTime > now }
+    val pastEvents = events.filter { it.dateTime != null && it.dateTime <= now }
 
     fun handleDelete(session: Session) {
         viewModel.deleteSession(session) // call ViewModel function
@@ -118,6 +126,7 @@ fun HobbyDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+            //progress card
             item {
                 hobby?.let { h ->
                     val progress = (weeklyCount.toFloat() / h.weeklyGoal).coerceIn(0f, 1f)
@@ -155,7 +164,7 @@ fun HobbyDetailScreen(
                     }
                 }
             }
-
+            //session section
             item {
                 Text(
                     "Session History",
@@ -164,7 +173,7 @@ fun HobbyDetailScreen(
                 )
             }
             //Session listings
-            if (sessions.isEmpty()) {
+            if (sessions.isEmpty() && pastEvents.isEmpty()) {
                 item {
                     Text(
                         "No sessions yet — tap Log Session to start!",
@@ -173,17 +182,60 @@ fun HobbyDetailScreen(
                     )
                 }
             } else {
-                items(sessions, key = { it.id }) { session ->
+                items(sessions, key = { "session_${it.id}" }) { session ->
                     SessionItem(
                         session = session,
-                        onDelete = { sessionToDelete ->
-                            viewModel.deleteSession(sessionToDelete) // call ViewModel
-                        },
-                        onEdit = { sessionToEdit ->
-                            viewModel.startEditingSession(sessionToEdit) // or open dialog
+                        onDelete = { viewModel.deleteSession(it) },
+                        onEdit = {
+                            viewModel.startEditingSession(it)
                             showDialog = true
                         }
                     )
+                }
+
+                // 🔹 Past events
+                items(pastEvents, key = { "event_${it.id}" }) { event ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(event.name)
+
+                            Text(
+                                "Event attended",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            event.dateTime?.let {
+                                val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+                                Text(fmt.format(Date(it)))
+                            }
+                        }
+                    }
+                }
+            }
+            //  EVENTS SECTION
+            item {
+                Text(
+                    "Upcoming Events",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (events.isEmpty()) {
+                item {
+                    Text("No upcoming events")
+                }
+            } else {
+                items(upcomingEvents, key = { it.id }) { event ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(event.name)
+
+                            event.dateTime?.let {
+                                val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+                                Text(fmt.format(Date(it)))
+                            }
+                        }
+                    }
                 }
             }
         }

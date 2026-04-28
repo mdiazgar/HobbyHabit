@@ -5,7 +5,17 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EventDao {
-
+    @Query("""
+    SELECT COUNT(*) FROM events 
+    WHERE hobbyId = :hobbyId 
+    AND dateTime >= :weekStart
+    AND dateTime <= :weekEnd
+""")
+    fun getEventCountThisWeek(
+        hobbyId: Int,
+        weekStart: Long,
+        weekEnd: Long = System.currentTimeMillis()
+    ): Flow<Int>
     @Query("SELECT * FROM events ORDER BY dateTime DESC")
     fun getAllEvents(): Flow<List<Event>>
 
@@ -17,4 +27,7 @@ interface EventDao {
 
     @Delete
     suspend fun deleteEvent(event: Event)
+
+    @Query("SELECT COUNT(*) FROM events WHERE hobbyId = :hobbyId")
+    fun getEventCountForHobby(hobbyId: Int): Flow<Int>
 }

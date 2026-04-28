@@ -98,7 +98,9 @@ fun HobbyCard(
     viewModel: HobbyViewModel,
     onClick: () -> Unit
 ) {
-    val count by viewModel.getSessionCountThisWeek(hobby.id).collectAsState(initial = 0)
+    val count by viewModel.getWeeklyActivityCount(hobby.id)
+        .collectAsState(initial = 0)
+
     val progress = (count.toFloat() / hobby.weeklyGoal).coerceIn(0f, 1f)
 
     Card(
