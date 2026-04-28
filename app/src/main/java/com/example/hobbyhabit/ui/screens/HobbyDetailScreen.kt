@@ -46,6 +46,25 @@ import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.widget.Toast
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,11 +74,30 @@ fun HobbyDetailScreen(
     onBack: () -> Unit,
     onFindEvents: (String, String) -> Unit   // hobbyName, category
 ) {
+
     val hobby by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
     val sessions by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
-    val weeklyCount by viewModel.getSessionCountThisWeek(hobbyId).collectAsState(initial = 0)
+    val weeklyCount by viewModel.getTotalWeeklyActivity(hobbyId)
+        .collectAsState(initial = 0)
     var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
+    val events by viewModel.getEventsForHobby(hobbyId)
+        .collectAsState(initial = emptyList())
+
+    val now = System.currentTimeMillis()
+
+    val upcomingEvents = events.filter { it.dateTime > now }
+    val pastEvents = events.filter { it.dateTime <= now }
+    fun handleDelete(session: Session) {
+        viewModel.deleteSession(session) // call ViewModel function
+        Toast.makeText(context, "Session deleted", Toast.LENGTH_SHORT).show()
+    }
+
+    fun handleEdit(session: Session) {
+        viewModel.startEditingSession(session) // you can open your edit dialog
+    }
+    //Top navigation of page
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,6 +132,7 @@ fun HobbyDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+            //progress card
             item {
                 hobby?.let { h ->
                     val progress = (weeklyCount.toFloat() / h.weeklyGoal).coerceIn(0f, 1f)
@@ -103,6 +142,7 @@ fun HobbyDetailScreen(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     ) {
+                        //Top green card of progress
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text("Category: ${h.category}",
                                 style = MaterialTheme.typography.labelMedium,
@@ -124,7 +164,8 @@ fun HobbyDetailScreen(
                             )
                             if (progress >= 1f) {
                                 Spacer(Modifier.height(6.dp))
-                                Text("Goal reached! Now find an event.",
+                                Text(
+                                    "Goal reached! Now find an event.",
                                     color = MaterialTheme.colorScheme.tertiary,
                                     style = MaterialTheme.typography.bodySmall)
                             }
@@ -132,70 +173,200 @@ fun HobbyDetailScreen(
                     }
                 }
             }
-
+            //session section
             item {
-                Text("Session History",
+                Text(
+                    "Session History",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold)
+                    fontWeight = FontWeight.SemiBold
+                )
             }
-
-            if (sessions.isEmpty()) {
+            //Session listings
+            if (sessions.isEmpty() && upcomingEvents.isEmpty() && pastEvents.isEmpty()) {
                 item {
-                    Text("No sessions yet — tap Log Session to start!",
+                    Text(
+                        "No activity yet — log a session or register for an event!",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
-                items(sessions, key = { it.id }) { session ->
-                    SessionItem(session)
+                items(sessions, key = { "session_${it.id}" }) { session ->
+                    SessionItem(
+                        session = session,
+                        onDelete = { viewModel.deleteSession(it) },
+                        onEdit = {
+                            viewModel.startEditingSession(it)
+                            showDialog = true
+                        }
+                    )
+                }
+
+                // 🔹 Past events
+                items(pastEvents, key = { "event_${it.id}" }) { event ->
+                    EventItem(
+                        event = event,
+                        onDelete = { viewModel.deleteEvent(it) }
+                    )
+                }
+            }
+            //  EVENTS SECTION
+            item {
+                Text(
+                    "Upcoming Events",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            if (upcomingEvents.isEmpty()) {
+                item {
+                    Text("No upcoming events")
+                }
+            } else {
+                items(upcomingEvents, key = { it.id }) { event ->
+                    EventItem(
+                        event = event,
+                        onDelete = { viewModel.deleteEvent(it) }
+                    )
                 }
             }
         }
     }
+    val editingSession by viewModel.editingSession
 
     if (showDialog) {
         LogSessionDialog(
-            onDismiss = { showDialog = false },
-            onConfirm = { duration, notes ->
-                viewModel.logSession(hobbyId, duration, notes)
+            session = editingSession,
+            onDismiss = {
                 showDialog = false
+                viewModel.startEditingSession(null)
+            },
+            onConfirm = { duration, notes, dateTime ->
+                if (editingSession != null) {
+                    val updated = editingSession!!.copy(
+                        durationMinutes = duration,
+                        notes = notes,
+                        timestamp = dateTime?.atZone(java.time.ZoneId.systemDefault())?.toInstant()
+                            ?.toEpochMilli()
+                            ?: System.currentTimeMillis()
+                    )
+                    viewModel.updateSession(updated)
+                } else {
+                    viewModel.logSession(hobbyId, duration, notes)
+                }
+                showDialog = false
+                viewModel.startEditingSession(null)
             }
         )
     }
 }
 
+// Session card
 @Composable
-fun SessionItem(session: Session) {
+fun SessionItem(
+    session: Session,
+    onDelete: (Session) -> Unit,
+    onEdit: (Session) -> Unit
+) {
     val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+    var expanded by remember { mutableStateOf(false) }
+
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+
+            // TOP ROW: Notes + duration + menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${session.durationMinutes} min", fontWeight = FontWeight.SemiBold)
-                Text(fmt.format(Date(session.timestamp)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                Text(
+                    text = if (session.notes.isNotBlank()) session.notes else "No notes",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Text(
+                    text = "${session.durationMinutes} min",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Box {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                expanded = false
+                                onEdit(session)
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                expanded = false
+                                onDelete(session)
+                            }
+                        )
+                    }
+                }
             }
-            if (session.notes.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(session.notes, style = MaterialTheme.typography.bodySmall)
-            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // DATE (consistent with events)
+            Text(
+                text = session.timestamp?.let { fmt.format(Date(it)) } ?: "No date",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
 
+// Log Session dialog
 @Composable
-fun LogSessionDialog(onDismiss: () -> Unit, onConfirm: (Int, String) -> Unit) {
-    var duration by remember { mutableStateOf("60") }
-    var notes by remember { mutableStateOf("") }
+fun LogSessionDialog(
+    session: Session? = null,
+    onDismiss: () -> Unit,
+    onConfirm: (Int, String, LocalDateTime?) -> Unit
+) {
+    var duration by remember { mutableStateOf(session?.durationMinutes?.toString() ?: "60") }
+    var notes by remember { mutableStateOf(session?.notes ?: "") }
+    var selectedDateTime by remember {
+        mutableStateOf(
+            session?.timestamp?.let {
+                LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(it),
+                    java.time.ZoneId.systemDefault()
+                )
+            }
+        )
+    }
+    val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Session") },
+        title = { Text(if (session == null) "Log Session" else "Edit Session") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 3,
+                    isError = notes.isBlank()
+                )
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { if (it.all(Char::isDigit)) duration = it },
@@ -204,22 +375,104 @@ fun LogSessionDialog(onDismiss: () -> Unit, onConfirm: (Int, String) -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
+                Button(
+                    onClick = {
+                        if (notes.isBlank()) {
+                            Toast.makeText(context, "Please enter notes first", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        val now = LocalDate.now()
+                        DatePickerDialog(
+                            context,
+                            { _, year, month, day ->
+                                val pickedDate = LocalDate.of(year, month + 1, day)
+                                TimePickerDialog(
+                                    context,
+                                    { _, hour, minute ->
+                                        selectedDateTime = pickedDate.atTime(hour, minute)
+                                    },
+                                    12, 0, true
+                                ).show()
+                            },
+                            now.year, now.monthValue - 1, now.dayOfMonth
+                        ).show()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        selectedDateTime?.format(
+                            DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
+                        ) ?: "Select Date & Time"
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(duration.toIntOrNull() ?: 30, notes) }) {
-                Text("Log")
+            TextButton(
+                onClick = {
+                    if (notes.isBlank()) {
+                        Toast.makeText(context, "Notes are required", Toast.LENGTH_SHORT).show()
+                        return@TextButton
+                    }
+                    onConfirm(duration.toIntOrNull() ?: 30, notes, selectedDateTime)
+                }
+            ) {
+                Text(if (session == null) "Log" else "Save")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+@Composable
+fun EventItem(
+    event: Event,
+    onDelete: (Event) -> Unit
+) {
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+
+        Column(modifier = Modifier.padding(14.dp)) {
+
+            // TOP ROW: TITLE + DELETE
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = event.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+
+                IconButton(onClick = { onDelete(event) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+
+            Text(
+                text = fmt.format(Date(event.dateTime)),
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            // SOURCE LABEL (small but consistent)
+            Text(
+                text = when (event.source) {
+                    EventSource.TICKETMASTER -> "Ticketmaster Event"
+                    EventSource.USER -> "Manual Event"
+                },
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
 }

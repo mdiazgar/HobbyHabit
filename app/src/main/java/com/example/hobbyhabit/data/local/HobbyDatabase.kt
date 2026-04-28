@@ -1,21 +1,20 @@
 package com.example.hobbyhabit.data.local
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
+import androidx.room.*
 
 @Database(
-    entities = [Hobby::class, Session::class, User::class],
-    version = 4,                  // bumped because Hobby entity gained a category field
+    entities = [Hobby::class, Session::class, User::class, Event::class],
+    version = 8,
     exportSchema = false
 )
+@TypeConverters(EventConverters::class)
 abstract class HobbyDatabase : RoomDatabase() {
 
     abstract fun hobbyDao(): HobbyDao
     abstract fun sessionDao(): SessionDao
     abstract fun userDao(): UserDao
-
+    abstract fun eventDao(): EventDao
     companion object {
         @Volatile
         private var INSTANCE: HobbyDatabase? = null
@@ -29,6 +28,7 @@ abstract class HobbyDatabase : RoomDatabase() {
                 )
                     .fallbackToDestructiveMigration()
                     .build()
+
                 INSTANCE = instance
                 instance
             }

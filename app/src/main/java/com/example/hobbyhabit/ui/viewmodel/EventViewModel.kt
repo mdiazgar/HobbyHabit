@@ -2,13 +2,20 @@ package com.example.hobbyhabit.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventSource
+import com.example.hobbyhabit.data.local.EventStatus
+import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
-import com.example.hobbyhabit.data.remote.RetrofitInstance
 import com.example.hobbyhabit.data.repository.EventRepository
+import com.example.hobbyhabit.data.repository.HobbyRepository
+import com.example.hobbyhabit.data.repository.TicketmasterRepository
+import com.example.hobbyhabit.data.mapper.toEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.example.hobbyhabit.data.mapper.toEvent
 
 sealed class EventUiState {
     object Idle : EventUiState()
@@ -17,21 +24,113 @@ sealed class EventUiState {
     data class Error(val message: String) : EventUiState()
 }
 
-class EventViewModel : ViewModel() {
+class EventViewModel(
+    private val hobbyRepository: HobbyRepository,
+    private val eventRepository: EventRepository,
+    private val ticketmasterRepository: TicketmasterRepository
+) : ViewModel() {
 
-    private val repository = EventRepository(RetrofitInstance.api)
-
+    // UI STATE (Ticketmaster search)
     private val _uiState = MutableStateFlow<EventUiState>(EventUiState.Idle)
     val uiState: StateFlow<EventUiState> = _uiState.asStateFlow()
 
-    fun searchEvents(apiKey: String, query: String, lat: Double? = null, lng: Double? = null) {
-        _uiState.value = EventUiState.Loading
+    // Selected Event
+    private val _selectedEvent = MutableStateFlow<TicketmasterEvent?>(null)
+    val selectedEvent: StateFlow<TicketmasterEvent?> = _selectedEvent.asStateFlow()
+
+    // Dialog States
+    private val _showRegisterDialog = MutableStateFlow(false)
+    val showRegisterDialog: StateFlow<Boolean> = _showRegisterDialog.asStateFlow()
+
+    private val _showHobbyPicker = MutableStateFlow(false)
+    val showHobbyPicker: StateFlow<Boolean> = _showHobbyPicker.asStateFlow()
+
+    private val _navigateToCreateHobby = MutableStateFlow(false)
+    val navigateToCreateHobby: StateFlow<Boolean> = _navigateToCreateHobby.asStateFlow()
+
+    // HOBBIES
+    private val _hobbies = MutableStateFlow<List<Hobby>>(emptyList())
+    val hobbies: StateFlow<List<Hobby>> = _hobbies.asStateFlow()
+
+    init {
         viewModelScope.launch {
-            val result = repository.searchEvents(apiKey, query, lat, lng)
+            hobbyRepository.getAllHobbies().collect { list ->
+                _hobbies.value = list
+            }
+        }
+    }
+
+    // SEARCH EVENTS
+    fun searchEvents(
+        apiKey: String,
+        query: String,
+        lat: Double? = null,
+        lng: Double? = null
+    ) {
+        _uiState.value = EventUiState.Loading
+
+        viewModelScope.launch {
+            val result = ticketmasterRepository.searchEvents(
+                apiKey, query, lat, lng
+            )
+
             _uiState.value = result.fold(
                 onSuccess = { EventUiState.Success(it) },
                 onFailure = { EventUiState.Error(it.message ?: "Unknown error") }
             )
         }
+    }
+
+    // EVENT CLICKED
+    fun onEventClicked(event: TicketmasterEvent) {
+        _selectedEvent.value = event
+        _showRegisterDialog.value = true
+    }
+
+    fun dismissDialog() {
+        _showRegisterDialog.value = false
+        _selectedEvent.value = null
+    }
+
+    // REGISTER FLOW
+    fun confirmRegisterEvent() {
+        _showRegisterDialog.value = false
+
+        if (_hobbies.value.isEmpty()) {
+            _navigateToCreateHobby.value = true
+        } else {
+            _showHobbyPicker.value = true
+        }
+    }
+
+    fun dismissHobbyPicker() {
+        _showHobbyPicker.value = false
+    }
+
+    fun navigateHandled() {
+        _navigateToCreateHobby.value = false
+    }
+
+    // ✅ FINAL CLEAN REGISTER FUNCTION
+    fun registerTicketmasterEvent(hobby: Hobby) {
+
+        val tmEvent = _selectedEvent.value ?: return
+
+        viewModelScope.launch {
+
+            val event = tmEvent.toEvent(hobby.id)
+
+            val existing = eventRepository.findEvent(
+                hobby.id,
+                event.name
+            )
+
+            if (existing != null) return@launch
+
+            eventRepository.insert(event)
+        }
+
+        _selectedEvent.value = null
+        _showHobbyPicker.value = false
     }
 }

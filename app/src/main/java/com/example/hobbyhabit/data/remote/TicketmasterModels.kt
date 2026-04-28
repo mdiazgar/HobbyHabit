@@ -8,7 +8,7 @@ data class TicketmasterResponse(
 )
 
 data class EmbeddedEvents(
-    val events: List<TicketmasterEvent>?
+    val events: List<TicketmasterEvent> = emptyList()
 )
 
 data class TicketmasterEvent(
@@ -24,12 +24,12 @@ data class EventDates(
 )
 
 data class EventStart(
-    val localDate: String?,    // "2026-05-10"
-    val localTime: String?     // "19:00:00"
+    val localDate: String?,
+    val localTime: String?
 )
 
 data class EventEmbedded(
-    val venues: List<TicketmasterVenue>?
+    val venues: List<TicketmasterVenue> = emptyList()
 )
 
 data class TicketmasterVenue(

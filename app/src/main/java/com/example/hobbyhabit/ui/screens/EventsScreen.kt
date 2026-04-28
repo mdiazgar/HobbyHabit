@@ -80,11 +80,28 @@ fun EventsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
 
+    // --- Merged from Doc 1: register dialog + hobby picker state ---
+    val selectedEvent by viewModel.selectedEvent.collectAsState()
+    val showDialog by viewModel.showRegisterDialog.collectAsState()
+    val showPicker by viewModel.showHobbyPicker.collectAsState()
     var locationStatus by remember { mutableStateOf("Detecting location...") }
     var hasLocation by remember { mutableStateOf(false) }
     var showLocationDialog by remember { mutableStateOf(false) }
     var cityInput by remember { mutableStateOf("") }
     var cityError by remember { mutableStateOf("") }
+
+    // --- Merged from Doc 1: legacy fetchWithLocation helper ---
+    fun fetchWithLocation() {
+        val client = LocationServices.getFusedLocationProviderClient(context)
+        client.lastLocation.addOnSuccessListener { loc ->
+            viewModel.searchEvents(
+                BuildConfig.TICKETMASTER_TOKEN, hobbyName,
+                loc?.latitude, loc?.longitude
+            )
+        }.addOnFailureListener {
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
+        }
+    }
 
     fun searchWithCoords(lat: Double?, lng: Double?, statusText: String, located: Boolean) {
         hasLocation = located
@@ -209,62 +226,138 @@ fun EventsScreen(
                     is EventUiState.Success -> {
                         if (state.events.isEmpty()) {
                             Column(
-                                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text("No events found nearby.",
-                                    style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "No events found nearby.",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
                                 OutlinedButton(onClick = { showLocationDialog = true }) {
                                     Text("Try a different city")
                                 }
                             }
                         } else {
                             LazyColumn(
-                                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 contentPadding = PaddingValues(vertical = 16.dp)
                             ) {
-                                items(state.events,
-                                    key = { it.id ?: it.hashCode().toString() }) { event ->
-                                    EventCard(event)
-                                }
+                                items(
+                                    state.events,
+                                    key = { it.id ?: it.hashCode().toString() }
+                                ) { event ->
+                                    EventCard(
+                                        event = event,
+                                        onClick = { viewModel.onEventClicked(it) }
+                                    )                                }
                             }
                         }
                     }
                     is EventUiState.Error -> {
                         Column(
-                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            Text("Could not load events",
-                                style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Could not load events",
+                                style = MaterialTheme.typography.titleMedium
+                            )
                             Spacer(Modifier.height(8.dp))
-                            Text(state.message,
+                            Text(
+                                state.message,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = {
+                                android.util.Log.d("EVENT_DEBUG", "SIGNUP CLICKED")
                                 viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
                             }) { Text("Retry") }
                         }
                     }
                 }
-            }
-        }
-    }
 
-    // City picker dialog
+                // --- Merged from Doc 1: Register event confirmation dialog ---
+                if (showDialog && selectedEvent != null) {
+                    AlertDialog(
+                        onDismissRequest = { viewModel.dismissDialog() },
+                        title = { Text("Register Event?") },
+                        text = {
+                            Text("Did you register for ${selectedEvent?.name}?")
+                        },
+                        confirmButton = {
+                            android.util.Log.d("EVENT_DEBUG", "SIGNUP CLICKED")
+
+                            Button(onClick = { viewModel.confirmRegisterEvent() }) {
+                                Text("Yes")
+                            }
+                        },
+                        dismissButton = {
+                            Button(onClick = { viewModel.dismissDialog() }) {
+                                Text("No")
+                            }
+                        }
+                    )
+                }
+
+                // --- Merged from Doc 1: Hobby picker dialog ---
+                if (showPicker) {
+                    AlertDialog(
+                        onDismissRequest = { viewModel.dismissHobbyPicker() },
+                        title = { Text("Choose Hobby") },
+                        text = {
+                            val hobbies by viewModel.hobbies.collectAsState()
+                            if (hobbies.isEmpty()) {
+                                Text("No hobbies found. Create one first.")
+                            } else {
+                                LazyColumn {
+                                    items(hobbies) { hobby ->
+                                        Text(
+                                            text = hobby.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    viewModel.registerTicketmasterEvent(hobby)
+                                                }
+                                                .padding(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            Button(onClick = { viewModel.dismissHobbyPicker() }) {
+                                Text("Close")
+                            }
+                        }
+                    )
+                }
+
+            } // end Box
+        } // end Column
+    } // end Scaffold
+
+    // City picker dialog (from Doc 2)
     if (showLocationDialog) {
         AlertDialog(
             onDismissRequest = { showLocationDialog = false },
             title = { Text("Set Location") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Enter a city to find events near it, or use your GPS location.",
+                    Text(
+                        "Enter a city to find events near it, or use your GPS location.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     OutlinedTextField(
                         value = cityInput,
@@ -290,8 +383,11 @@ fun EventsScreen(
                             else locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
                         }
                     ) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null,
-                            modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(Modifier.width(6.dp))
                         Text("Use My GPS Location")
                     }
@@ -341,11 +437,17 @@ fun EventsScreen(
 }
 
 @Composable
-fun EventCard(event: TicketmasterEvent) {
+fun EventCard(
+    event: TicketmasterEvent,
+    onClick: (TicketmasterEvent) -> Unit
+) {
     val context = LocalContext.current
+
     val venue = event.embedded?.venues?.firstOrNull()
     val venueName = venue?.name
-    val venueLocation = listOfNotNull(venue?.city?.name, venue?.state?.name).joinToString(", ")
+    val venueLocation = listOfNotNull(venue?.city?.name, venue?.state?.name)
+        .joinToString(", ")
+
     val date = event.dates?.start?.localDate
     val time = event.dates?.start?.localTime?.take(5)
     val dateString = listOfNotNull(date, time).joinToString(" at ")
@@ -354,39 +456,48 @@ fun EventCard(event: TicketmasterEvent) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
+                // Open the Ticketmaster URL first
                 event.url?.let { url ->
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
                 }
+                // Then signal the ViewModel so the dialog shows when user returns
+                onClick(event)
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+
             Text(
                 event.name ?: "Unnamed Event",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
+
             Spacer(Modifier.height(6.dp))
+
             if (dateString.isNotBlank()) {
                 Text("📅 $dateString", style = MaterialTheme.typography.bodySmall)
             }
+
             if (!venueName.isNullOrBlank()) {
                 Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        listOfNotNull(venueName, venueLocation.ifBlank { null })
-                            .joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text(
+                    listOfNotNull(venueName, venueLocation.ifBlank { null })
+                        .joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Visual hint that it opens Ticketmaster
+            if (event.url != null) {
+                Text(
+                    text = "View on Ticketmaster ↗",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }
