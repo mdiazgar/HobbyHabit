@@ -201,14 +201,22 @@ fun HobbyDetailScreen(
                         }
                     )
                 }
-
-                // 🔹 Past events
-                items(pastEvents, key = { "event_${it.id}" }) { event ->
-                    EventItem(
-                        event = event,
-                        onDelete = { viewModel.deleteEvent(it) }
-                    )
+                if (pastEvents.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Past Events",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    items(pastEvents, key = { "past_event_${it.id}" }) { event ->
+                        EventItem(
+                            event = event,
+                            onDelete = { viewModel.deleteEvent(it) }
+                        )
+                    }
                 }
+
             }
             //  EVENTS SECTION
             item {
@@ -223,7 +231,7 @@ fun HobbyDetailScreen(
                     Text("No upcoming events")
                 }
             } else {
-                items(upcomingEvents, key = { it.id }) { event ->
+                items(upcomingEvents, key = { "upcoming_event_${it.id}" }) { event ->
                     EventItem(
                         event = event,
                         onDelete = { viewModel.deleteEvent(it) }
