@@ -2,6 +2,7 @@ package com.example.hobbyhabit.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import android.location.Geocoder
 import androidx.compose.foundation.clickable
 import android.Manifest
 import android.annotation.SuppressLint
@@ -25,6 +26,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,13 +37,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -51,34 +63,61 @@ import com.example.hobbyhabit.data.remote.TicketmasterEvent
 import com.example.hobbyhabit.ui.viewmodel.EventUiState
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsScreen(
     hobbyName: String,
-    category: String,           // Ticketmaster classificationName
+    category: String,
     viewModel: EventViewModel,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    fun fetchWithLocation() {
+    var locationStatus by remember { mutableStateOf("Detecting location...") }
+    var hasLocation by remember { mutableStateOf(false) }
+    var showLocationDialog by remember { mutableStateOf(false) }
+    var cityInput by remember { mutableStateOf("") }
+    var cityError by remember { mutableStateOf("") }
+
+    fun searchWithCoords(lat: Double?, lng: Double?, statusText: String, located: Boolean) {
+        hasLocation = located
+        locationStatus = statusText
+        viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, lat, lng)
+    }
+
+    fun fetchGpsLocation() {
         val client = LocationServices.getFusedLocationProviderClient(context)
         client.lastLocation.addOnSuccessListener { loc ->
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category,
-                loc?.latitude, loc?.longitude)
+            if (loc != null) {
+                searchWithCoords(loc.latitude, loc.longitude, "Showing events near you", true)
+            } else {
+                hasLocation = false
+                locationStatus = "Location unavailable — tap to set city"
+                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
+            }
         }.addOnFailureListener {
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
+            hasLocation = false
+            locationStatus = "Location unavailable — tap to set city"
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
         }
     }
 
     val locationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) fetchWithLocation()
-        else viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
+        if (granted) fetchGpsLocation()
+        else {
+            hasLocation = false
+            locationStatus = "Location denied — tap to set city"
+            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category, null, null)
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -86,7 +125,7 @@ fun EventsScreen(
             val hasPermission = ContextCompat.checkSelfPermission(
                 context, Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
-            if (hasPermission) fetchWithLocation()
+            if (hasPermission) fetchGpsLocation()
             else locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
     }
@@ -103,48 +142,201 @@ fun EventsScreen(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            when (val state = uiState) {
-                is EventUiState.Idle,
-                is EventUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // Location banner — tappable to open city picker
+            Surface(
+                color = if (hasLocation)
+                    MaterialTheme.colorScheme.primaryContainer
+                else
+                    MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showLocationDialog = true }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (hasLocation) Icons.Default.LocationOn
+                            else Icons.Default.LocationOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (hasLocation) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            locationStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (hasLocation)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = "Change location",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                is EventUiState.Success -> {
-                    if (state.events.isEmpty()) {
-                        Text("No $hobbyName events found nearby.",
-                            modifier = Modifier.align(Alignment.Center))
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(vertical = 16.dp)
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is EventUiState.Idle,
+                    is EventUiState.Loading -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(state.events,
-                                key = { it.id ?: it.hashCode().toString() }) { event ->
-                                EventCard(event)
+                            CircularProgressIndicator()
+                            Text(
+                                "Finding events near you...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    is EventUiState.Success -> {
+                        if (state.events.isEmpty()) {
+                            Column(
+                                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text("No events found nearby.",
+                                    style = MaterialTheme.typography.titleMedium)
+                                OutlinedButton(onClick = { showLocationDialog = true }) {
+                                    Text("Try a different city")
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(vertical = 16.dp)
+                            ) {
+                                items(state.events,
+                                    key = { it.id ?: it.hashCode().toString() }) { event ->
+                                    EventCard(event)
+                                }
                             }
                         }
                     }
-                }
-                is EventUiState.Error -> {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Could not load events",
-                            style = MaterialTheme.typography.titleMedium)
-                        Spacer(Modifier.height(8.dp))
-                        Text(state.message, style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = {
-                            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
-                        }) { Text("Retry") }
+                    is EventUiState.Error -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text("Could not load events",
+                                style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.height(8.dp))
+                            Text(state.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = {
+                                viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category)
+                            }) { Text("Retry") }
+                        }
                     }
                 }
             }
         }
+    }
+
+    // City picker dialog
+    if (showLocationDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationDialog = false },
+            title = { Text("Set Location") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Enter a city to find events near it, or use your GPS location.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    OutlinedTextField(
+                        value = cityInput,
+                        onValueChange = { cityInput = it; cityError = "" },
+                        label = { Text("City") },
+                        placeholder = { Text("e.g. Boston, New York, Chicago") },
+                        isError = cityError.isNotBlank(),
+                        supportingText = if (cityError.isNotBlank()) {{ Text(cityError) }} else null,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showLocationDialog = false
+                            cityInput = ""
+                            cityError = ""
+                            val hasPermission = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.ACCESS_COARSE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (hasPermission) fetchGpsLocation()
+                            else locationLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        }
+                    ) {
+                        Icon(Icons.Default.LocationOn, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Use My GPS Location")
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    if (cityInput.isBlank()) {
+                        cityError = "Please enter a city"
+                        return@Button
+                    }
+                    // Geocode the city name to lat/lng using Android's Geocoder
+                    scope.launch {
+                        try {
+                            val geocoder = Geocoder(context)
+                            val results = withContext(Dispatchers.IO) {
+                                @Suppress("DEPRECATION")
+                                geocoder.getFromLocationName(cityInput, 1)
+                            }
+                            if (!results.isNullOrEmpty()) {
+                                val loc = results[0]
+                                showLocationDialog = false
+                                searchWithCoords(
+                                    loc.latitude, loc.longitude,
+                                    "Showing events near ${cityInput.trim()}",
+                                    true
+                                )
+                                cityInput = ""
+                            } else {
+                                cityError = "City not found — try a different name"
+                            }
+                        } catch (e: Exception) {
+                            cityError = "Could not find city — check your connection"
+                        }
+                    }
+                }) {
+                    Text("Search")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationDialog = false; cityError = "" }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -182,9 +374,12 @@ fun EventCard(event: TicketmasterEvent) {
             if (!venueName.isNullOrBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null,
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.primary)
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         listOfNotNull(venueName, venueLocation.ifBlank { null })
