@@ -431,28 +431,47 @@ fun EventItem(
     event: Event,
     onDelete: (Event) -> Unit
 ) {
-    val context = LocalContext.current
 
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
 
-            Text(event.name)
+        Column(modifier = Modifier.padding(14.dp)) {
 
-            Text(
-                if (event.source == EventSource.TICKETMASTER)
-                    "Ticketmaster Event"
-                else
-                    "Manual Event"
-            )
+            // TOP ROW: TITLE + DELETE
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-            val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
-            Text(fmt.format(Date(event.dateTime)))
+                Text(
+                    text = event.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
 
-            Row {
                 IconButton(onClick = { onDelete(event) }) {
                     Icon(Icons.Default.Delete, contentDescription = "Delete")
                 }
             }
+
+            Spacer(Modifier.height(6.dp))
+
+            val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+
+            Text(
+                text = fmt.format(Date(event.dateTime)),
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            // SOURCE LABEL (small but consistent)
+            Text(
+                text = when (event.source) {
+                    EventSource.TICKETMASTER -> "Ticketmaster Event"
+                    EventSource.USER -> "Manual Event"
+                },
+                style = MaterialTheme.typography.labelSmall
+            )
         }
     }
 }
