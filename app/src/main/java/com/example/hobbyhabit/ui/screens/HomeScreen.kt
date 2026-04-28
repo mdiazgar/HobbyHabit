@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,7 +42,6 @@ fun HomeScreen(
             )
         },
 
-        // ✅ THIS IS CORRECT AND MUST STAY LIKE THIS
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddHobby,
@@ -83,7 +84,8 @@ fun HomeScreen(
                     HobbyCard(
                         hobby = hobby,
                         viewModel = viewModel,
-                        onClick = { onHobbyClick(hobby) }
+                        onClick = { onHobbyClick(hobby) },
+                        onDeleteClick = { viewModel.deleteHobby(hobby) }
                     )
                 }
             }
@@ -96,7 +98,8 @@ fun HomeScreen(
 fun HobbyCard(
     hobby: Hobby,
     viewModel: HobbyViewModel,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
 ) {
     val count by viewModel.getWeeklyActivityCount(hobby.id)
         .collectAsState(initial = 0)
@@ -110,14 +113,27 @@ fun HobbyCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            Text(
-                hobby.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = hobby.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Delete Hobby"
+                    )
+                }
+            }
 
             Spacer(Modifier.height(4.dp))
-
             Text(
                 "$count / ${hobby.weeklyGoal} sessions this week",
                 style = MaterialTheme.typography.bodySmall,
