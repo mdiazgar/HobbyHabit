@@ -267,39 +267,27 @@ fun SessionItem(
     var expanded by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
+
+            // TOP ROW: Notes + duration + menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
+
                 Text(
                     text = if (session.notes.isNotBlank()) session.notes else "No notes",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
-
                 Text(
-                    "${session.durationMinutes} min",
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = session.timestamp?.let { fmt.format(Date(it)) } ?: "No date",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "${session.durationMinutes} min",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
                 )
 
-
-                // Three dot menu
                 Box {
                     IconButton(onClick = { expanded = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "Menu")
@@ -309,7 +297,6 @@ fun SessionItem(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
-
                         DropdownMenuItem(
                             text = { Text("Edit") },
                             onClick = {
@@ -328,6 +315,15 @@ fun SessionItem(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // DATE (consistent with events)
+            Text(
+                text = session.timestamp?.let { fmt.format(Date(it)) } ?: "No date",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
