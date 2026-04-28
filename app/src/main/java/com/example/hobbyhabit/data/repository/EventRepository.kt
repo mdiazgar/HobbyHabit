@@ -11,7 +11,9 @@ class EventRepository(
     fun getAllEvents(): Flow<List<Event>> {
         return eventDao.getAllEvents()
     }
-
+    suspend fun findEvent(hobbyId: Int, name: String): Event? {
+        return eventDao.findEvent(hobbyId, name)
+    }
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> {
         return eventDao.getEventsForHobby(hobbyId)
     }

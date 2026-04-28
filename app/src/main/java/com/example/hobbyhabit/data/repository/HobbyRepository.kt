@@ -27,10 +27,7 @@ class HobbyRepository(
     suspend fun deleteHobby(hobby: Hobby) =
         hobbyDao.deleteHobby(hobby)
 
-    // -------------------------
     // EVENTS
-    // -------------------------
-
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
         eventDao.getEventsForHobby(hobbyId)
 
@@ -40,10 +37,7 @@ class HobbyRepository(
     fun getEventCountThisWeek(hobbyId: Int, weekStart: Long): Flow<Int> =
         eventDao.getEventCountThisWeek(hobbyId, weekStart)
 
-    // -------------------------
     // SESSIONS
-    // -------------------------
-
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         sessionDao.getSessionsForHobby(hobbyId)
 
@@ -67,10 +61,10 @@ class HobbyRepository(
 
     suspend fun deleteSession(session: Session) =
         sessionDao.deleteSession(session)
-
-    // -------------------------
-    // 🔥 FIXED: WEEKLY TOTAL (SESSIONS + EVENTS)
-    // -------------------------
+    suspend fun deleteEvent(event: Event) {
+        eventDao.deleteEvent(event)
+    }
+    //WEEKLY TOTAL (SESSIONS + EVENTS)
 
     fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> {
 

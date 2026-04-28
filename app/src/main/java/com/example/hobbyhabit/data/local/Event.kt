@@ -15,8 +15,7 @@ data class Event(
     val durationMinutes: Int?,
     val url: String?,
     val status: EventStatus,
-
-    val source: EventSource = EventSource.TICKETMASTER
+    val source: EventSource
 )
 
 enum class EventStatus {

@@ -10,6 +10,7 @@ import com.example.hobbyhabit.data.repository.HobbyRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
+import com.example.hobbyhabit.data.local.Event
 
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -64,7 +65,11 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
     }
-
+    fun deleteEvent(event: Event) {
+        viewModelScope.launch {
+            repository.deleteEvent(event)
+        }
+    }
     fun deleteSession(session: Session) {
         viewModelScope.launch {
             repository.deleteSession(session)

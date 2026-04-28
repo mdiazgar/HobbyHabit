@@ -3,17 +3,19 @@ package com.example.hobbyhabit.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventSource
 import com.example.hobbyhabit.data.local.EventStatus
 import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
 import com.example.hobbyhabit.data.repository.EventRepository
 import com.example.hobbyhabit.data.repository.HobbyRepository
 import com.example.hobbyhabit.data.repository.TicketmasterRepository
+import com.example.hobbyhabit.data.mapper.toEvent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
+import com.example.hobbyhabit.data.mapper.toEvent
 
 sealed class EventUiState {
     object Idle : EventUiState()
@@ -51,7 +53,6 @@ class EventViewModel(
     val hobbies: StateFlow<List<Hobby>> = _hobbies.asStateFlow()
 
     init {
-        // Load hobbies from Room
         viewModelScope.launch {
             hobbyRepository.getAllHobbies().collect { list ->
                 _hobbies.value = list
@@ -110,57 +111,26 @@ class EventViewModel(
         _navigateToCreateHobby.value = false
     }
 
-    // SAVE EVENT to HOBBY
-    fun saveEventToHobby(hobby: Hobby) {
+    // ✅ FINAL CLEAN REGISTER FUNCTION
+    fun registerTicketmasterEvent(hobby: Hobby) {
 
-        android.util.Log.d("EVENT_DEBUG", "saveEventToHobby CALLED")
-        android.util.Log.d("EVENT_DEBUG", "Selected event BEFORE = ${_selectedEvent.value}")
-        android.util.Log.d("EVENT_DEBUG", "Clicked hobby = $hobby")
-
-        val event = _selectedEvent.value
-        if (event == null) {
-            android.util.Log.e("EVENT_DEBUG", "Selected event is NULL ❌")
-            return
-        }
+        val tmEvent = _selectedEvent.value ?: return
 
         viewModelScope.launch {
-            val eventId = event.id ?: run {
-                android.util.Log.e("EVENT_DEBUG", "Event ID is NULL ❌")
-                return@launch
-            }
 
-            eventRepository.insert(
-                Event(
-                    hobbyId = hobby.id,
-                    name = event.name ?: "",
-                    location = "",
-                    dateTime = parseDate(event),
-                    durationMinutes = null,
-                    url = event.url,
-                    status = EventStatus.UPCOMING
-                )
+            val event = tmEvent.toEvent(hobby.id)
+
+            val existing = eventRepository.findEvent(
+                hobby.id,
+                event.name
             )
 
-            android.util.Log.d("EVENT_DEBUG", "EVENT SAVED SUCCESSFULLY ✅")
+            if (existing != null) return@launch
 
-            _selectedEvent.value = null
-            _showHobbyPicker.value = false
+            eventRepository.insert(event)
         }
-    }
 
-    // DATE PARSING
-    private fun parseDate(event: TicketmasterEvent): Long {
-        val date = event.dates?.start?.localDate ?: return System.currentTimeMillis()
-        val time = event.dates?.start?.localTime ?: "00:00:00"
-
-        return try {
-            val dateTimeString = "${date}T$time"
-            java.time.LocalDateTime.parse(dateTimeString)
-                .atZone(java.time.ZoneId.systemDefault())
-                .toInstant()
-                .toEpochMilli()
-        } catch (e: Exception) {
-            System.currentTimeMillis()
-        }
+        _selectedEvent.value = null
+        _showHobbyPicker.value = false
     }
 }

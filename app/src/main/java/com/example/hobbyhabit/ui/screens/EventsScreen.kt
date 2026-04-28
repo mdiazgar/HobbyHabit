@@ -189,7 +189,7 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
-                                                viewModel.saveEventToHobby(hobby)
+                                                viewModel.registerTicketmasterEvent(hobby)
                                             }
                                             .padding(12.dp)
                                     )
@@ -246,3 +246,4 @@ fun EventCard(event: TicketmasterEvent, viewModel: EventViewModel) {
         }
     }
 }
+

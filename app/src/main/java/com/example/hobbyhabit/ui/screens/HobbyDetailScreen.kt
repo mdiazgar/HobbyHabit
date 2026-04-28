@@ -55,6 +55,7 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.MoreVert
@@ -62,6 +63,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,13 +81,14 @@ fun HobbyDetailScreen(
         .collectAsState(initial = 0)
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
     val events by viewModel.getEventsForHobby(hobbyId)
         .collectAsState(initial = emptyList())
+
     val now = System.currentTimeMillis()
 
-    val upcomingEvents = events.filter { it.dateTime != null && it.dateTime > now }
-    val pastEvents = events.filter { it.dateTime != null && it.dateTime <= now }
-
+    val upcomingEvents = events.filter { it.dateTime > now }
+    val pastEvents = events.filter { it.dateTime <= now }
     fun handleDelete(session: Session) {
         viewModel.deleteSession(session) // call ViewModel function
         Toast.makeText(context, "Session deleted", Toast.LENGTH_SHORT).show()
@@ -173,10 +177,10 @@ fun HobbyDetailScreen(
                 )
             }
             //Session listings
-            if (sessions.isEmpty() && pastEvents.isEmpty()) {
+            if (sessions.isEmpty() && upcomingEvents.isEmpty() && pastEvents.isEmpty()) {
                 item {
                     Text(
-                        "No sessions yet — tap Log Session to start!",
+                        "No activity yet — log a session or register for an event!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -195,21 +199,10 @@ fun HobbyDetailScreen(
 
                 // 🔹 Past events
                 items(pastEvents, key = { "event_${it.id}" }) { event ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(event.name)
-
-                            Text(
-                                "Event attended",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-
-                            event.dateTime?.let {
-                                val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
-                                Text(fmt.format(Date(it)))
-                            }
-                        }
-                    }
+                    EventItem(
+                        event = event,
+                        onDelete = { viewModel.deleteEvent(it) }
+                    )
                 }
             }
             //  EVENTS SECTION
@@ -220,22 +213,16 @@ fun HobbyDetailScreen(
                 )
             }
 
-            if (events.isEmpty()) {
+            if (upcomingEvents.isEmpty()) {
                 item {
                     Text("No upcoming events")
                 }
             } else {
                 items(upcomingEvents, key = { it.id }) { event ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(event.name)
-
-                            event.dateTime?.let {
-                                val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
-                                Text(fmt.format(Date(it)))
-                            }
-                        }
-                    }
+                    EventItem(
+                        event = event,
+                        onDelete = { viewModel.deleteEvent(it) }
+                    )
                 }
             }
         }
@@ -437,4 +424,35 @@ fun LogSessionDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+@Composable
+fun EventItem(
+    event: Event,
+    onDelete: (Event) -> Unit
+) {
+    val context = LocalContext.current
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+
+            Text(event.name)
+
+            Text(
+                if (event.source == EventSource.TICKETMASTER)
+                    "Ticketmaster Event"
+                else
+                    "Manual Event"
+            )
+
+            val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+            Text(fmt.format(Date(event.dateTime)))
+
+            Row {
+                IconButton(onClick = { onDelete(event) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
+            }
+        }
+    }
 }
