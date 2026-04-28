@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = HobbyDatabase.getDatabase(application)
@@ -62,7 +63,6 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _editingSession = mutableStateOf<Session?>(null)
     val editingSession: State<Session?> = _editingSession
-
     fun startEditingSession(session: Session?) {
         _editingSession.value = session
     }

@@ -5,7 +5,7 @@ import androidx.room.*
 
 @Database(
     entities = [Hobby::class, Session::class, User::class, Event::class],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(EventConverters::class)
@@ -15,7 +15,6 @@ abstract class HobbyDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun userDao(): UserDao
     abstract fun eventDao(): EventDao
-
     companion object {
         @Volatile
         private var INSTANCE: HobbyDatabase? = null

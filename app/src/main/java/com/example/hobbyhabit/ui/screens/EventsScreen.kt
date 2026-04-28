@@ -56,7 +56,8 @@ import androidx.compose.material3.Scaffold
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.platform.LocalContext
-
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 @SuppressLint("MissingPermission")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -172,30 +173,37 @@ fun EventsScreen(hobbyName: String, viewModel: EventViewModel, onBack: () -> Uni
                 )
             }
             if (showPicker) {
-            AlertDialog(
-                onDismissRequest = { viewModel.dismissHobbyPicker() },
-                title = { Text("Choose Hobby") },
-                text = {
-                    Text("Select a hobby to attach this event to")
-                    // later we replace this with LazyColumn of hobbies
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        // TODO: save event to selected hobby
-                        viewModel.dismissHobbyPicker()
-                    }) {
-                        Text("OK")
+                AlertDialog(
+                    onDismissRequest = { viewModel.dismissHobbyPicker() },
+                    title = { Text("Choose Hobby") },
+                    text = {
+                        val hobbies by viewModel.hobbies.collectAsState()
+
+                        if (hobbies.isEmpty()) {
+                            Text("No hobbies found. Create one first.")
+                        } else {
+                            LazyColumn {
+                                items(hobbies) { hobby ->
+                                    Text(
+                                        text = hobby.name,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                viewModel.saveEventToHobby(hobby)
+                                            }
+                                            .padding(12.dp)
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = { viewModel.dismissHobbyPicker() }) {
+                            Text("Close")
+                        }
                     }
-                },
-                dismissButton = {
-                    Button(onClick = {
-                        viewModel.dismissHobbyPicker()
-                    }) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
+                )
+            }
 
         }
     }

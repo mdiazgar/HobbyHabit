@@ -7,15 +7,20 @@ import kotlinx.coroutines.flow.Flow
 class EventRepository(
     private val eventDao: EventDao
 ) {
-    fun getUpcomingEvents(): Flow<List<Event>> =
-        eventDao.getUpcomingEvents()
 
-    fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
-        eventDao.getEventsForHobby(hobbyId)
+    fun getAllEvents(): Flow<List<Event>> {
+        return eventDao.getAllEvents()
+    }
 
-    suspend fun insert(event: Event) =
-        eventDao.insert(event)
+    fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> {
+        return eventDao.getEventsForHobby(hobbyId)
+    }
 
-    suspend fun update(event: Event) =
-        eventDao.update(event)
+    suspend fun insert(event: Event) {
+        eventDao.insertEvent(event)
+    }
+
+    suspend fun delete(event: Event) {
+        eventDao.deleteEvent(event)
+    }
 }

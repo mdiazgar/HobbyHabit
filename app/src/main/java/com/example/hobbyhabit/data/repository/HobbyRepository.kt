@@ -47,7 +47,9 @@ class HobbyRepository(
 
         return sessionDao.getSessionCountThisWeek(hobbyId, weekStart)
     }
-
+    suspend fun updateSession(session: Session) {
+        sessionDao.updateSession(session)
+    }
     suspend fun logSession(session: Session) {
         sessionDao.insertSession(session)
     }
@@ -56,7 +58,5 @@ class HobbyRepository(
         sessionDao.deleteSession(session)
     }
 
-    suspend fun updateSession(session: Session) {
-        sessionDao.updateSession(session)
-    }
+
 }

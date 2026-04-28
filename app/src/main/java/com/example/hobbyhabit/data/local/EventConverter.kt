@@ -4,7 +4,7 @@ import androidx.room.TypeConverter
 
 class EventConverters {
 
-    // ---- EventSource ----
+    // EventSource
     @TypeConverter
     fun fromEventSource(value: EventSource): String {
         return value.name
@@ -15,7 +15,7 @@ class EventConverters {
         return EventSource.valueOf(value)
     }
 
-    // ---- EventStatus ----
+    // EventStatus
     @TypeConverter
     fun fromEventStatus(value: EventStatus): String {
         return value.name

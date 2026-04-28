@@ -6,15 +6,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface EventDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(event: Event)
-
-    @Update
-    suspend fun update(event: Event)
+    @Query("SELECT * FROM events ORDER BY dateTime DESC")
+    fun getAllEvents(): Flow<List<Event>>
 
     @Query("SELECT * FROM events WHERE hobbyId = :hobbyId")
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>>
 
-    @Query("SELECT * FROM events WHERE status = 'UPCOMING'")
-    fun getUpcomingEvents(): Flow<List<Event>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEvent(event: Event)
+
+    @Delete
+    suspend fun deleteEvent(event: Event)
 }
