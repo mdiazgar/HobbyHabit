@@ -1,32 +1,15 @@
 package com.example.hobbyhabit.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -39,7 +22,8 @@ import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 fun HomeScreen(
     viewModel: HobbyViewModel,
     onAddHobby: () -> Unit,
-    onHobbyClick: (Hobby) -> Unit
+    onHobbyClick: (Hobby) -> Unit,
+    onProfileClick: () -> Unit
 ) {
     val hobbies by viewModel.hobbies.collectAsState()
 
@@ -47,17 +31,27 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text("HobbyHabit", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onProfileClick) {
+                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             )
         },
+
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddHobby) {
+            FloatingActionButton(
+                onClick = onAddHobby,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Hobby")
             }
         }
     ) { innerPadding ->
+
         if (hobbies.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -90,7 +84,8 @@ fun HomeScreen(
                     HobbyCard(
                         hobby = hobby,
                         viewModel = viewModel,
-                        onClick = { onHobbyClick(hobby) }
+                        onClick = { onHobbyClick(hobby) },
+                        onDeleteClick = { viewModel.deleteHobby(hobby) }
                     )
                 }
             }
@@ -100,8 +95,15 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HobbyCard(hobby: Hobby, viewModel: HobbyViewModel, onClick: () -> Unit) {
-    val count by viewModel.getSessionCountThisWeek(hobby.id).collectAsState(initial = 0)
+fun HobbyCard(
+    hobby: Hobby,
+    viewModel: HobbyViewModel,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    val count by viewModel.getWeeklyActivityCount(hobby.id)
+        .collectAsState(initial = 0)
+
     val progress = (count.toFloat() / hobby.weeklyGoal).coerceIn(0f, 1f)
 
     Card(
@@ -110,24 +112,45 @@ fun HobbyCard(hobby: Hobby, viewModel: HobbyViewModel, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                hobby.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Text(
+                    text = hobby.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Delete Hobby"
+                    )
+                }
+            }
+
             Spacer(Modifier.height(4.dp))
             Text(
                 "$count / ${hobby.weeklyGoal} sessions this week",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Spacer(Modifier.height(8.dp))
+
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.fillMaxWidth(),
-                color = if (progress >= 1f) MaterialTheme.colorScheme.tertiary
-                        else MaterialTheme.colorScheme.primary
+                color = if (progress >= 1f)
+                    MaterialTheme.colorScheme.tertiary
+                else
+                    MaterialTheme.colorScheme.primary
             )
+
             if (progress >= 1f) {
                 Spacer(Modifier.height(4.dp))
                 Text(

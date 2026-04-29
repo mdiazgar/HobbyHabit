@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class Hobby(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
+    val category: String,
     val weeklyGoal: Int,
     val createdAt: Long = System.currentTimeMillis()
 )

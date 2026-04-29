@@ -7,20 +7,21 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitInstance {
 
-    private const val BASE_URL = "https://www.eventbriteapi.com/v3/"
+    // Ticketmaster Discovery API base URL
+    private const val BASE_URL = "https://app.ticketmaster.com/discovery/v2/"
 
     private val client = OkHttpClient.Builder()
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = HttpLoggingInterceptor.Level.BODY
         })
         .build()
 
-    val api: EventbriteApi by lazy {
+    val api: TicketmasterApi by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(EventbriteApi::class.java)
+            .create(TicketmasterApi::class.java)
     }
 }
