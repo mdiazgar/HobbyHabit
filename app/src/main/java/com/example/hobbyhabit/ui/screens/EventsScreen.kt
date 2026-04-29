@@ -421,6 +421,7 @@ fun EventsScreen(
     }
 }
 
+//This is for the ticketmaster side, which shows all of the ticketmaster events.
 @Composable
 fun EventCard(
     event: TicketmasterEvent,
@@ -446,7 +447,6 @@ fun EventCard(
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
                 }
-                // Then signal the ViewModel so the dialog shows when user returns
                 onClick(event)
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -455,7 +455,7 @@ fun EventCard(
 
             Text(
                 event.name ?: "Unnamed Event",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 

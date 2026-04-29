@@ -19,6 +19,7 @@ import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +34,11 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("HobbyHabit", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text("HobbyHabit",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold)
+                        },
                 actions = {
                     IconButton(onClick = onProfileClick) {
                         Icon(Icons.Default.Person, contentDescription = "Profile")
@@ -124,7 +129,7 @@ fun HobbyCard(
 
                 Text(
                     text = hobby.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
 

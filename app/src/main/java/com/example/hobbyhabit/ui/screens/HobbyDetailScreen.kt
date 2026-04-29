@@ -370,7 +370,7 @@ fun LogSessionDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes") },
+                    label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3,
                     isError = notes.isBlank()
