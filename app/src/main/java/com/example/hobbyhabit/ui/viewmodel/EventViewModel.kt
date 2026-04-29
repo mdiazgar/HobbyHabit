@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hobbyhabit.data.local.Event
 import com.example.hobbyhabit.data.local.EventSource
-import com.example.hobbyhabit.data.local.EventStatus
 import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
 import com.example.hobbyhabit.data.repository.EventRepository

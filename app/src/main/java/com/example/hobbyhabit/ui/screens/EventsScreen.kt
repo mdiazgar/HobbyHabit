@@ -90,18 +90,6 @@ fun EventsScreen(
     var cityInput by remember { mutableStateOf("") }
     var cityError by remember { mutableStateOf("") }
 
-    // --- Merged from Doc 1: legacy fetchWithLocation helper ---
-    fun fetchWithLocation() {
-        val client = LocationServices.getFusedLocationProviderClient(context)
-        client.lastLocation.addOnSuccessListener { loc ->
-            viewModel.searchEvents(
-                BuildConfig.TICKETMASTER_TOKEN, hobbyName,
-                loc?.latitude, loc?.longitude
-            )
-        }.addOnFailureListener {
-            viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, hobbyName)
-        }
-    }
 
     fun searchWithCoords(lat: Double?, lng: Double?, statusText: String, located: Boolean) {
         hasLocation = located
@@ -279,7 +267,6 @@ fun EventsScreen(
                             )
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = {
-                                android.util.Log.d("EVENT_DEBUG", "SIGNUP CLICKED")
                                 viewModel.searchEvents(BuildConfig.TICKETMASTER_TOKEN, category ?: "")
                             }) { Text("Retry") }
                         }
@@ -295,8 +282,6 @@ fun EventsScreen(
                             Text("Did you register for ${selectedEvent?.name}?")
                         },
                         confirmButton = {
-                            android.util.Log.d("EVENT_DEBUG", "SIGNUP CLICKED")
-
                             Button(onClick = { viewModel.confirmRegisterEvent() }) {
                                 Text("Yes")
                             }

@@ -5,7 +5,7 @@ import androidx.room.*
 
 @Database(
     entities = [Hobby::class, Session::class, User::class, Event::class],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(EventConverters::class)

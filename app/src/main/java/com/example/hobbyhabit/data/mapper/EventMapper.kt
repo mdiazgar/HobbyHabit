@@ -2,7 +2,6 @@ package com.example.hobbyhabit.data.mapper
 
 import com.example.hobbyhabit.data.local.Event
 import com.example.hobbyhabit.data.local.EventSource
-import com.example.hobbyhabit.data.local.EventStatus
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
 
 fun TicketmasterEvent.toEvent(hobbyId: Int): Event {
@@ -20,7 +19,6 @@ fun TicketmasterEvent.toEvent(hobbyId: Int): Event {
         } ?: System.currentTimeMillis(),
         durationMinutes = null,
         url = this.url,
-        status = EventStatus.UPCOMING,
         source = EventSource.TICKETMASTER
     )
 }

@@ -15,14 +15,4 @@ class EventConverters {
         return EventSource.valueOf(value)
     }
 
-    // EventStatus
-    @TypeConverter
-    fun fromEventStatus(value: EventStatus): String {
-        return value.name
-    }
-
-    @TypeConverter
-    fun toEventStatus(value: String): EventStatus {
-        return EventStatus.valueOf(value)
-    }
 }

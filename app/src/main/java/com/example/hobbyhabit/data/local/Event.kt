@@ -14,15 +14,9 @@ data class Event(
     val dateTime: Long,
     val durationMinutes: Int?,
     val url: String?,
-    val status: EventStatus,
     val source: EventSource
 )
 
-enum class EventStatus {
-    UPCOMING,
-    COMPLETED,
-    MISSED
-}
 
 enum class EventSource {
     USER,
