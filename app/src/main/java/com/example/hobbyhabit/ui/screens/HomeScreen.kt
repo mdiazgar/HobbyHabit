@@ -16,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,15 +104,15 @@ fun HobbyCard(
     onClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val count by viewModel.getWeeklyActivityCount(hobby.id)
-        .collectAsState(initial = 0)
-
+    val count by viewModel.getWeeklyActivityCount(hobby.id).collectAsState(initial = 0)
     val progress = (count.toFloat() / hobby.weeklyGoal).coerceIn(0f, 1f)
+    val progressPercent = (progress * 100).toInt()
+    val isGoalReached = progress >= 1f
 
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
@@ -132,23 +135,41 @@ fun HobbyCard(
                     )
                 }
             }
-
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "$count / ${hobby.weeklyGoal} sessions this week",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "$count / ${hobby.weeklyGoal} sessions this week",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    if (isGoalReached) "100%" else "$progressPercent%",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isGoalReached)
+                        MaterialTheme.colorScheme.tertiary
+                    else
+                        MaterialTheme.colorScheme.primary
+                )
+            }
 
             Spacer(Modifier.height(8.dp))
 
             LinearProgressIndicator(
                 progress = { progress },
-                modifier = Modifier.fillMaxWidth(),
-                color = if (progress >= 1f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
+                color = if (isGoalReached)
                     MaterialTheme.colorScheme.tertiary
                 else
-                    MaterialTheme.colorScheme.primary
+                    MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
             if (progress >= 1f) {
