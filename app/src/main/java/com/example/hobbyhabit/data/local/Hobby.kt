@@ -6,8 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "hobbies")
 data class Hobby(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,           // display name e.g. "Theatre & Arts"
-    val category: String,       // Ticketmaster classification e.g. "Arts & Theatre"
+    val name: String,
+    val category: String,
     val weeklyGoal: Int,
     val createdAt: Long = System.currentTimeMillis()
 )
