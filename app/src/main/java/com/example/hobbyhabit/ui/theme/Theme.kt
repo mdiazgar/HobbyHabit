@@ -1,53 +1,58 @@
 package com.example.hobbyhabit.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DeepOceanColors = darkColorScheme(
-    primary             = Color(0xFF00D4FF),  // progress bar fill, FAB color,
-    // "View on Ticketmaster" text, active nav icon
+// Your original colors
+val BlushPink    = Color(0xFFEDAFB8)
+val CreamPeach   = Color(0xFFF7E1D7)
+val WarmGray     = Color(0xFFDEDBD2)
+val SageGreen    = Color(0xFFB0C4B1)
+val DarkSlate    = Color(0xFF4A5759)
 
-    onPrimary           = Color(0xFF003040),  // text/icon ON TOP of primary colored surfaces
-    primaryContainer    = Color(0xFF004D66),  // location banner background (primaryContainer)
-    onPrimaryContainer  = Color(0xFF80E8FF),  // text inside the location banner
+// Added — close to your palette's vibe
+val SoftCream    = Color(0xFFF9EEE8)  // slightly warmer than CreamPeach, screen bg
+val DustyRose    = Color(0xFFD4B8BC)  // between BlushPink and WarmGray
+val DeepSage     = Color(0xFF7A9E8A)  // darker sage, progress bars + active icons
+val SlateBlue    = Color(0xFF6B7C7E)  // between DarkSlate and WarmGray, muted text
 
-    secondary           = Color(0xFF4A9BAA),  // secondary buttons, chips (rarely used in your app)
-    onSecondary         = Color(0xFF001F26),  // text on top of secondary surfaces
+private val BlushSageColors = lightColorScheme(
 
-    tertiary            = Color(0xFF00E5A0),  // "Goal reached!" text, progress bar at 100%,
-    // the green detail card text in HobbyDetailScreen
+    primary             = DeepSage,        // progress bar, FAB, active nav icons
+    onPrimary           = Color(0xFFFFFAF8),
 
-    onTertiary          = Color(0xFF003826),  // text on top of tertiary surfaces
-    tertiaryContainer   = Color(0xFF00533A),  // background of tertiary containers (unused currently)
-    onTertiaryContainer = Color(0xFF60F0C0),  // text inside tertiary containers (unused currently)
+    primaryContainer    = DarkSlate,       // top app bar background
+    onPrimaryContainer  = CreamPeach,      // top app bar text + icons
 
-    background          = Color(0xFFC1E2E4),  // the screen background behind all cards
-    onBackground        = Color(0xFFE0F4F8),  // main body text on the background
+    secondary           = DustyRose,       // secondary buttons, chips
+    onSecondary         = DarkSlate,
+    secondaryContainer  = BlushPink,       // goal reached card background
+    onSecondaryContainer = DarkSlate,
 
-    surface             = Color(0xFF71A3CA),  // every Card() background (HobbyCard, EventCard,
-    // SessionItem, EventItem)
+    tertiary            = BlushPink,       // "Goal reached!" accent
+    onTertiary          = DarkSlate,
+    tertiaryContainer   = BlushPink,
+    onTertiaryContainer = DarkSlate,
 
-    onSurface           = Color(0xFFE0F4F8),  // primary text inside cards — hobby name,
-    // event title, session notes
+    background          = SoftCream,       // screen background
+    onBackground        = DarkSlate,
 
-    surfaceVariant      = Color(0xFF162330),  // location banner when no GPS, dialog backgrounds,
-    // progress bar track (unfilled portion)
+    surface             = CreamPeach,      // default card background
+    onSurface           = DarkSlate,
 
-    onSurfaceVariant    = Color(0xFF6B9BAA),  // muted text — "3/4 sessions this week",
-    // venue name, date text, placeholder text
+    surfaceVariant      = WarmGray,        // location banner, dialogs, progress track
+    onSurfaceVariant    = SlateBlue,       // muted text — session count, venue, date
 
-    outline             = Color(0xFF2A4A5A),  // OutlinedTextField borders, OutlinedButton borders,
-    // card divider lines
-
-    outlineVariant      = Color(0xFF1A3040),  // subtle dividers, less prominent borders
+    outline             = SageGreen,       // TextField borders, OutlinedButton
+    outlineVariant      = DustyRose,
 )
 
 @Composable
 fun HobbyHabitTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DeepOceanColors,
+        colorScheme = BlushSageColors,
         content = content
     )
 }
