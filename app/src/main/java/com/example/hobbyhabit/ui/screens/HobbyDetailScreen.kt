@@ -60,7 +60,7 @@ fun HobbyDetailScreen(
     val pastEvents = events.filter { it.dateTime <= now }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background, // SoftCream
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -83,8 +83,8 @@ fun HobbyDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,    // DarkSlate
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer, // CreamPeach
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -95,7 +95,7 @@ fun HobbyDetailScreen(
                 onClick = { showDialog = true },
                 icon = { Icon(Icons.Default.AddCircle, contentDescription = null) },
                 text = { Text("Log Session") },
-                containerColor = MaterialTheme.colorScheme.primary,   // DeepSage
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )
         }
@@ -112,36 +112,40 @@ fun HobbyDetailScreen(
             // Progress summary card
             item {
                 hobby?.let { h ->
-                    val progress = (weeklyCount.toFloat() / h.weeklyGoal).coerceIn(0f, 1f)
+                    val progress = (weeklyCount.toFloat() / h.weeklyGoal.coerceAtLeast(1))
+                        .coerceIn(0f, 1f)
                     val isGoalReached = progress >= 1f
+
+                    // Same logic as HobbyCard in HomeScreen
+                    val cardColor = when {
+                        isGoalReached  -> BlushPink
+                        progress <= 0f -> WarmGray
+                        else           -> CreamPeach
+                    }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            // flips to BlushPink when goal is hit
-                            containerColor = if (isGoalReached) BlushPink else CreamPeach
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-
                             Text(
                                 "Category: ${h.category}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 "This Week",
                                 style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface // DarkSlate
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 "$weeklyCount / ${h.weeklyGoal} sessions",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface // DarkSlate
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(Modifier.height(10.dp))
                             LinearProgressIndicator(
@@ -150,16 +154,13 @@ fun HobbyDetailScreen(
                                     .fillMaxWidth()
                                     .height(6.dp)
                                     .clip(RoundedCornerShape(3.dp)),
-                                color = if (isGoalReached)
-                                    MaterialTheme.colorScheme.tertiary  // BlushPink accent
-                                else
-                                    MaterialTheme.colorScheme.primary,  // DeepSage
-                                trackColor = MaterialTheme.colorScheme.surfaceVariant // WarmGray
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = SageGreen.copy(alpha = 0.25f)
                             )
                             if (isGoalReached) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    "Goal reached! Now find an event. 🎉",
+                                    "Goal reached!",
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.bodySmall
@@ -176,7 +177,7 @@ fun HobbyDetailScreen(
                     "Session History",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground // DarkSlate
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -185,7 +186,7 @@ fun HobbyDetailScreen(
                     Text(
                         "No activity yet — log a session or register for an event!",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -218,7 +219,6 @@ fun HobbyDetailScreen(
                 }
             }
 
-            // Upcoming events header
             item {
                 Text(
                     "Upcoming Events",
@@ -276,7 +276,6 @@ fun HobbyDetailScreen(
     }
 }
 
-// Session card
 @Composable
 fun SessionItem(
     session: Session,
@@ -289,12 +288,9 @@ fun SessionItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = CreamPeach // warm cream for session cards
-        )
+        colors = CardDefaults.cardColors(containerColor = CreamPeach)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -303,21 +299,21 @@ fun SessionItem(
                     text = if (session.notes.isNotBlank()) session.notes else "No notes",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface, // DarkSlate
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = "${session.durationMinutes} min",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary // DeepSage
+                    color = MaterialTheme.colorScheme.primary
                 )
                 Box {
                     IconButton(onClick = { expanded = true }) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     DropdownMenu(
@@ -335,19 +331,16 @@ fun SessionItem(
                     }
                 }
             }
-
             Spacer(Modifier.height(6.dp))
-
             Text(
                 text = session.timestamp?.let { fmt.format(Date(it)) } ?: "No date",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
-// Log Session dialog
 @Composable
 fun LogSessionDialog(
     session: Session? = null,
@@ -370,17 +363,21 @@ fun LogSessionDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CreamPeach,   // warm cream dialog background
-        titleContentColor = MaterialTheme.colorScheme.onSurface,   // DarkSlate
+        containerColor = CreamPeach,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
         textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        title = { Text(if (session == null) "Log Session" else "Edit Session",
-            fontWeight = FontWeight.SemiBold) },
+        title = {
+            Text(
+                if (session == null) "Log Session" else "Edit Session",
+                fontWeight = FontWeight.SemiBold
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Name") },
+                    label = { Text("Notes") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3,
                     isError = notes.isBlank()
@@ -418,7 +415,7 @@ fun LogSessionDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary, // DeepSage
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
@@ -442,32 +439,27 @@ fun LogSessionDialog(
             ) {
                 Text(
                     if (session == null) "Log" else "Save",
-                    color = MaterialTheme.colorScheme.primary, // DeepSage
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(
-                    "Cancel",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
-                )
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
 }
 
-// Event card
 @Composable
 fun EventItem(
     event: Event,
     onDelete: (Event) -> Unit
 ) {
-    // Ticketmaster events get DustyRose, manual events get WarmGray
     val cardColor = when (event.source) {
         EventSource.TICKETMASTER -> DustyRose
-        EventSource.USER -> WarmGray
+        EventSource.USER         -> WarmGray
     }
 
     Card(
@@ -476,7 +468,6 @@ fun EventItem(
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -485,41 +476,36 @@ fun EventItem(
                     text = event.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface, // DarkSlate
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = { onDelete(event) }) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-
             Spacer(Modifier.height(6.dp))
-
             val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
             Text(
                 text = fmt.format(Date(event.dateTime)),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant // SlateBlue
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
-            Spacer(Modifier.height(4.dp))
-
-            // Source badge
+            Spacer(Modifier.height(6.dp))
             Surface(
                 color = when (event.source) {
                     EventSource.TICKETMASTER -> MaterialTheme.colorScheme.tertiary
-                    EventSource.USER -> SageGreen
+                    EventSource.USER         -> SageGreen
                 },
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
                     text = when (event.source) {
                         EventSource.TICKETMASTER -> "Ticketmaster"
-                        EventSource.USER -> "Manual"
+                        EventSource.USER         -> "Manual"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface,

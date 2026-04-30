@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.hobbyhabit.BuildConfig
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
+import com.example.hobbyhabit.ui.theme.progressCardColor
 import com.example.hobbyhabit.ui.viewmodel.EventUiState
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.google.android.gms.location.LocationServices

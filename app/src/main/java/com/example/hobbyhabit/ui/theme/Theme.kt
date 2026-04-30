@@ -5,6 +5,12 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
+fun progressCardColor(progress: Float): Color = when {
+    progress <= 0f  -> WarmGray    // 0 sessions — gray nudge
+    progress >= 1f  -> BlushPink   // goal reached — pink celebration
+    else            -> CreamPeach  // in progress — default cream
+}
+
 // Your original colors
 val BlushPink    = Color(0xFFEDAFB8)
 val CreamPeach   = Color(0xFFF7E1D7)

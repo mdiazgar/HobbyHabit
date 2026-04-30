@@ -20,6 +20,7 @@ import com.example.hobbyhabit.data.local.Hobby
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 import com.example.hobbyhabit.ui.theme.BlushPink
 import com.example.hobbyhabit.ui.theme.CreamPeach
+import com.example.hobbyhabit.ui.theme.SageGreen
 import com.example.hobbyhabit.ui.theme.WarmGray
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -126,10 +127,11 @@ fun HobbyCard(
     val isGoalReached = progress >= 1f
 
     // Card color shifts based on progress state
+
     val cardColor = when {
-        isGoalReached  -> BlushPink   // pink celebration when goal hit
-        progress < 0.3f -> WarmGray  // gray nudge when barely started
-        else           -> CreamPeach // default warm cream
+        isGoalReached -> BlushPink
+        progress <= 0f -> WarmGray
+        else -> CreamPeach
     }
 
     Card(
@@ -193,11 +195,8 @@ fun HobbyCard(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp)),
-                color = if (isGoalReached)
-                    MaterialTheme.colorScheme.tertiary  // BlushPink full bar
-                else
-                    MaterialTheme.colorScheme.primary,  // DeepSage in-progress bar
-                trackColor = MaterialTheme.colorScheme.surfaceVariant // WarmGray track
+                    color = MaterialTheme.colorScheme.primary,       // DeepSage always
+                    trackColor = SageGreen.copy(alpha = 0.25f)
             )
 
             if (isGoalReached) {
