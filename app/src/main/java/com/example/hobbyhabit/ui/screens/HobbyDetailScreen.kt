@@ -514,7 +514,7 @@ fun EventItem(
                     EventSource.TICKETMASTER -> MaterialTheme.colorScheme.tertiary
                     EventSource.USER -> SageGreen
                 },
-                sha"pe = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
                     text = when (event.source) {
