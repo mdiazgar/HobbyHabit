@@ -27,8 +27,7 @@ class HobbyRepository(
         sessionDao.getSessionsForHobby(hobbyId)
 
     fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> {
-        val weekStart = weekStartMillis()
-        return sessionDao.getSessionCountThisWeek(hobbyId, weekStart)
+        return sessionDao.getSessionCountThisWeek(hobbyId, weekStartMillis())
     }
 
     suspend fun logSession(session: Session) = sessionDao.insertSession(session)
@@ -39,8 +38,18 @@ class HobbyRepository(
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
         eventDao.getEventsForHobby(hobbyId)
 
+    fun getAllEvents(): Flow<List<Event>> = eventDao.getAllEvents()
+
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         eventDao.getEventCountForHobby(hobbyId)
+
+    // Calendar: events between two timestamps
+    fun getEventsBetween(startMillis: Long, endMillis: Long): Flow<List<Event>> =
+        eventDao.getEventsBetween(startMillis, endMillis)
+
+    // Calendar: events for a specific day
+    fun getEventsForDay(dayStart: Long, dayEnd: Long): Flow<List<Event>> =
+        eventDao.getEventsForDay(dayStart, dayEnd)
 
     suspend fun addEvent(event: Event) = eventDao.insertEvent(event)
     suspend fun updateEvent(event: Event) = eventDao.updateEvent(event)
@@ -48,7 +57,7 @@ class HobbyRepository(
     suspend fun findEvent(hobbyId: Int, name: String): Event? =
         eventDao.findEvent(hobbyId, name)
 
-    // ── Weekly activity (sessions + events combined) ───────────────────
+    // ── Weekly activity (sessions + events this week) ─────────────────
     fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> {
         val weekStart = weekStartMillis()
         return combine(

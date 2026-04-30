@@ -21,6 +21,14 @@ interface EventDao {
     @Query("SELECT * FROM events ORDER BY dateTime DESC")
     fun getAllEvents(): Flow<List<Event>>
 
+    // Calendar query — get all events between two epoch millis timestamps
+    @Query("SELECT * FROM events WHERE dateTime >= :startMillis AND dateTime < :endMillis ORDER BY dateTime ASC")
+    fun getEventsBetween(startMillis: Long, endMillis: Long): Flow<List<Event>>
+
+    // Get all events for a specific day
+    @Query("SELECT * FROM events WHERE dateTime >= :dayStart AND dateTime < :dayEnd ORDER BY dateTime ASC")
+    fun getEventsForDay(dayStart: Long, dayEnd: Long): Flow<List<Event>>
+
     @Query("SELECT * FROM events WHERE hobbyId = :hobbyId AND name = :name LIMIT 1")
     suspend fun findEvent(hobbyId: Int, name: String): Event?
 
