@@ -37,6 +37,10 @@ class HobbyRepository(
     fun getEventCountThisWeek(hobbyId: Int, weekStart: Long): Flow<Int> =
         eventDao.getEventCountThisWeek(hobbyId, weekStart)
 
+    suspend fun addEvent(event: Event) {
+        eventDao.insertEvent(event)
+    }
+
     // SESSIONS
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         sessionDao.getSessionsForHobby(hobbyId)

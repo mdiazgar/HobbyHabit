@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.*
 import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.EventSource
+import java.time.LocalDateTime
 
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -45,6 +47,29 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addManualEvent(
+        hobbyId: Int,
+        name: String,
+        location: String,
+        dateTime: Long,
+        durationMinutes: Int?,
+        url: String?
+    ) {
+        viewModelScope.launch {
+            repository.addEvent(
+                Event(
+                    hobbyId = hobbyId,
+                    name = name.trim(),
+                    location = location.trim(),
+                    dateTime = dateTime,
+                    durationMinutes = durationMinutes,
+                    url = url?.trim()?.takeIf { it.isNotBlank() },
+                    source = EventSource.USER
+                )
+            )
+        }
+    }
+
     fun getHobbyById(id: Int): Flow<Hobby?> =
         repository.getHobbyById(id)
 
@@ -55,7 +80,7 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> =
         repository.getSessionCountThisWeek(hobbyId)
 
-    fun logSession(hobbyId: Int, durationMinutes: Int, notes: String) {
+    fun logSession(hobbyId: Int, durationMinutes: Int, notes: String, dateTime: LocalDateTime?) {
         viewModelScope.launch {
             repository.logSession(
                 Session(
