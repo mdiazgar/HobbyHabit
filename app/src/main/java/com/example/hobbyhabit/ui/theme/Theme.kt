@@ -5,29 +5,49 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val DarkColors = darkColorScheme(
-    primary             = Color(0xFF7C5CBF),  // progress bar + buttons
-    onPrimary           = Color(0xFFEDE3FF),  // text on primary
-    primaryContainer    = Color(0xFF2A1F45),  // location banner bg, containers
-    onPrimaryContainer  = Color(0xFFC4A8F5),  // text inside primaryContainer
+private val DeepOceanColors = darkColorScheme(
+    primary             = Color(0xFF00D4FF),  // progress bar fill, FAB color,
+    // "View on Ticketmaster" text, active nav icon
 
-    tertiary            = Color(0xFF1D9E75),  // "Goal reached!" + full bar
-    onTertiary          = Color(0xFFE1F5EE),
+    onPrimary           = Color(0xFF003040),  // text/icon ON TOP of primary colored surfaces
+    primaryContainer    = Color(0xFF004D66),  // location banner background (primaryContainer)
+    onPrimaryContainer  = Color(0xFF80E8FF),  // text inside the location banner
 
-    background          = Color(0xFF0E0C14),  // page background
-    onBackground        = Color(0xFFF0EBF8),  // main text
+    secondary           = Color(0xFF4A9BAA),  // secondary buttons, chips (rarely used in your app)
+    onSecondary         = Color(0xFF001F26),  // text on top of secondary surfaces
 
-    surface             = Color(0xFF13111A),  // card background
-    onSurface           = Color(0xFFF0EBF8),  // text on cards
+    tertiary            = Color(0xFF00E5A0),  // "Goal reached!" text, progress bar at 100%,
+    // the green detail card text in HobbyDetailScreen
 
-    surfaceVariant      = Color(0xFF1C1825),  // nested surfaces, location banner
-    onSurfaceVariant    = Color(0xFF9B8FB0),  // muted text — "3/4 sessions"
+    onTertiary          = Color(0xFF003826),  // text on top of tertiary surfaces
+    tertiaryContainer   = Color(0xFF00533A),  // background of tertiary containers (unused currently)
+    onTertiaryContainer = Color(0xFF60F0C0),  // text inside tertiary containers (unused currently)
+
+    background          = Color(0xFFC1E2E4),  // the screen background behind all cards
+    onBackground        = Color(0xFFE0F4F8),  // main body text on the background
+
+    surface             = Color(0xFF71A3CA),  // every Card() background (HobbyCard, EventCard,
+    // SessionItem, EventItem)
+
+    onSurface           = Color(0xFFE0F4F8),  // primary text inside cards — hobby name,
+    // event title, session notes
+
+    surfaceVariant      = Color(0xFF162330),  // location banner when no GPS, dialog backgrounds,
+    // progress bar track (unfilled portion)
+
+    onSurfaceVariant    = Color(0xFF6B9BAA),  // muted text — "3/4 sessions this week",
+    // venue name, date text, placeholder text
+
+    outline             = Color(0xFF2A4A5A),  // OutlinedTextField borders, OutlinedButton borders,
+    // card divider lines
+
+    outlineVariant      = Color(0xFF1A3040),  // subtle dividers, less prominent borders
 )
 
 @Composable
 fun HobbyHabitTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColors,
+        colorScheme = DeepOceanColors,
         content = content
     )
 }
