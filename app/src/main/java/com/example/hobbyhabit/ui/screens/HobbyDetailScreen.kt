@@ -61,6 +61,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -84,7 +85,23 @@ fun HobbyDetailScreen(
     var eventToEdit    by remember { mutableStateOf<Event?>(null) }
 
     val context = LocalContext.current
+    fun getCurrentWeekRange(): String {
+        val calendar = Calendar.getInstance()
 
+        // Set to Monday of current week
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7
+        calendar.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
+
+        val monday = calendar.time
+
+        // Set to Sunday of current week
+        calendar.add(Calendar.DAY_OF_MONTH, 6)
+        val sunday = calendar.time
+
+        val formatter = SimpleDateFormat("MMM d", Locale.getDefault())
+        return "${formatter.format(monday)} – ${formatter.format(sunday)}"
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -137,7 +154,10 @@ fun HobbyDetailScreen(
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer)
                             Spacer(Modifier.height(4.dp))
-                            Text("This Week", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                text = getCurrentWeekRange(),  // e.g. "Apr 28 – May 4"
+                                style = MaterialTheme.typography.labelLarge
+                            )
                             Spacer(Modifier.height(4.dp))
                             Text("$weeklyCount / ${h.weeklyGoal} sessions",
                                 style = MaterialTheme.typography.headlineMedium,
