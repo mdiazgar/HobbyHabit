@@ -59,7 +59,13 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         repository.getWeeklyActivityCount(hobbyId)
 
     // dateTime is optional — if null, uses current time
-    fun logSession(hobbyId: Int, durationMinutes: Int, notes: String, dateTime: LocalDateTime? = null) {
+    fun logSession(
+        hobbyId: Int,
+        durationMinutes: Int,
+        notes: String,
+        dateTime: LocalDateTime? = null,
+        timestamp: Long
+    ) {
         viewModelScope.launch {
             val timestamp = dateTime
                 ?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
