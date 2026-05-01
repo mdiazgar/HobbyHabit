@@ -39,6 +39,8 @@ import com.example.hobbyhabit.ui.theme.CreamPeach
 import com.example.hobbyhabit.ui.theme.WarmGray
 import com.example.hobbyhabit.ui.theme.DustyRose
 import com.example.hobbyhabit.ui.theme.SageGreen
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
