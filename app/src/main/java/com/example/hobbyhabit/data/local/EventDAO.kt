@@ -27,7 +27,8 @@ interface EventDao {
 
     @Delete
     suspend fun deleteEvent(event: Event)
-
+    @Insert
+    suspend fun insert(event: Event)
     @Query("SELECT COUNT(*) FROM events WHERE hobbyId = :hobbyId")
     fun getEventCountForHobby(hobbyId: Int): Flow<Int>
 

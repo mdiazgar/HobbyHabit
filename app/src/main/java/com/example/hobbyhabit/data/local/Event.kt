@@ -10,7 +10,7 @@ data class Event(
     val hobbyId: Int,
 
     val name: String,
-    val location: String,
+    val location: String?,
     val dateTime: Long,
     val durationMinutes: Int?,
     val url: String?,

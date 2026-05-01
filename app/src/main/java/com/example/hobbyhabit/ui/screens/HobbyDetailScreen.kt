@@ -262,18 +262,43 @@ fun HobbyDetailScreen(
                 viewModel.startEditingSession(null)
             },
             onConfirm = { duration, notes, dateTime ->
+
+                val millis = dateTime
+                    ?.atZone(java.time.ZoneId.systemDefault())
+                    ?.toInstant()
+                    ?.toEpochMilli()
+                    ?: System.currentTimeMillis()
+
+                val now = System.currentTimeMillis()
+
                 if (editingSession != null) {
                     val updated = editingSession!!.copy(
                         durationMinutes = duration,
                         notes = notes,
-                        timestamp = dateTime?.atZone(java.time.ZoneId.systemDefault())
-                            ?.toInstant()?.toEpochMilli()
-                            ?: System.currentTimeMillis()
+                        dateTime = millis
                     )
                     viewModel.updateSession(updated)
                 } else {
-                    viewModel.logSession(hobbyId, duration, notes)
+                    if (millis > now) {
+                        // FUTURE: save as EVENT
+                        viewModel.addManualEvent(
+                            hobbyId = hobbyId,
+                            name = notes,
+                            location = null,
+                            dateTime = millis,
+                            durationMinutes = duration,
+                            url = null
+                        )
+                    } else {
+                    // 👉 PAST → save as SESSION
+                    viewModel.logSession(
+                        hobbyId = hobbyId,
+                        durationMinutes = duration,
+                        notes = notes,
+                        dateTime = millis
+                    ) }
                 }
+
                 showDialog = false
                 viewModel.startEditingSession(null)
             }

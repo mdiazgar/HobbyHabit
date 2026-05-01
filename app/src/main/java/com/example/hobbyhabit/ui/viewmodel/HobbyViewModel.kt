@@ -46,6 +46,29 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addManualEvent(
+        hobbyId: Int,
+        name: String,
+        location: String?,
+        dateTime: Long,
+        durationMinutes: Int?,
+        url: String?
+    ) {
+        viewModelScope.launch {
+            repository.insertEvent(
+                Event(
+                    hobbyId = hobbyId,
+                    name = name,
+                    location = location,
+                    dateTime = dateTime,
+                    durationMinutes = durationMinutes,
+                    url = url,
+                    source = EventSource.USER
+                )
+            )
+        }
+    }
+
     fun getHobbyById(id: Int): Flow<Hobby?> =
         repository.getHobbyById(id)
 

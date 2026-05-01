@@ -59,6 +59,9 @@ class HobbyRepository(
     suspend fun updateSession(session: Session) =
         sessionDao.updateSession(session)
 
+    suspend fun insertEvent(event: Event) {
+        eventDao.insert(event)
+    }
     suspend fun deleteSession(session: Session) =
         sessionDao.deleteSession(session)
     suspend fun deleteEvent(event: Event) {
