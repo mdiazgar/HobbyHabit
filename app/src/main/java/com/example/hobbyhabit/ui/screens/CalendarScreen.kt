@@ -1,9 +1,6 @@
 package com.example.hobbyhabit.ui.screens
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,17 +65,37 @@ import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 
-// Map Ticketmaster category names to emoji icons as fallback images
+// Maps hobby category → emoji, using the real Ticketmaster category name from the Hobby entity
 fun categoryEmoji(category: String): String = when {
     category.contains("Theatre", ignoreCase = true) ||
-            category.contains("Arts", ignoreCase = true)    -> "🎭"
-    category.contains("Music", ignoreCase = true)   -> "🎵"
-    category.contains("Comedy", ignoreCase = true)  -> "🎤"
-    category.contains("Dance", ignoreCase = true)   -> "💃"
-    category.contains("Film", ignoreCase = true)    -> "🎬"
-    category.contains("Sports", ignoreCase = true)  -> "⚽"
-    category.contains("Family", ignoreCase = true)  -> "👨‍👩‍👧"
-    category.contains("Education", ignoreCase = true) -> "📚"
+            category.contains("Arts", ignoreCase = true)       -> "🎭"
+    category.contains("Music", ignoreCase = true)      -> "🎵"
+    category.contains("Comedy", ignoreCase = true)     -> "🎤"
+    category.contains("Dance", ignoreCase = true) ||
+            category.contains("Performance", ignoreCase = true) -> "💃"
+    category.contains("Film", ignoreCase = true) ||
+            category.contains("Cinema", ignoreCase = true)     -> "🎬"
+    category.contains("Sport", ignoreCase = true)      -> "⚽"
+    category.contains("Family", ignoreCase = true) ||
+            category.contains("Kids", ignoreCase = true)       -> "👨‍👩‍👧"
+    category.contains("Education", ignoreCase = true)  -> "📚"
+    category.contains("Food", ignoreCase = true) ||
+            category.contains("Culinary", ignoreCase = true)   -> "🍽️"
+    category.contains("Travel", ignoreCase = true) ||
+            category.contains("Outdoor", ignoreCase = true)    -> "🌍"
+    category.contains("Tech", ignoreCase = true) ||
+            category.contains("Gaming", ignoreCase = true)     -> "🎮"
+    category.contains("Art", ignoreCase = true) ||
+            category.contains("Paint", ignoreCase = true) ||
+            category.contains("Draw", ignoreCase = true)       -> "🎨"
+    category.contains("Photo", ignoreCase = true)      -> "📸"
+    category.contains("Writing", ignoreCase = true) ||
+            category.contains("Book", ignoreCase = true)       -> "✍️"
+    category.contains("Fitness", ignoreCase = true) ||
+            category.contains("Yoga", ignoreCase = true) ||
+            category.contains("Gym", ignoreCase = true)        -> "💪"
+    category.contains("Cook", ignoreCase = true) ||
+            category.contains("Bak", ignoreCase = true)        -> "🍳"
     else -> "📅"
 }
 
@@ -88,6 +105,10 @@ fun CalendarScreen(viewModel: HobbyViewModel) {
     val month       by viewModel.calendarMonth.collectAsState()
     val selectedDay by viewModel.selectedDay.collectAsState()
     val allEvents   by viewModel.allEvents.collectAsState()
+    val hobbies     by viewModel.hobbies.collectAsState()
+
+    // hobbyId → category string for emoji lookup
+    val categoryByHobbyId = hobbies.associate { it.id to it.category }
 
     val markedDays    = viewModel.daysWithEvents(month, allEvents)
     val dayEvents     = selectedDay?.let { viewModel.eventsForDay(it, allEvents) } ?: emptyList()
@@ -132,65 +153,89 @@ fun CalendarScreen(viewModel: HobbyViewModel) {
                 )
             }
 
-            // Selected day events
-            item {
-                AnimatedVisibility(
-                    visible = selectedDay != null,
-                    enter   = expandVertically(),
-                    exit    = shrinkVertically()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        selectedDay?.let { day ->
-                            Text(
-                                text = day.format(java.time.format.DateTimeFormatter
-                                    .ofPattern("EEEE, MMMM d")),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-                        }
-                        if (dayEvents.isEmpty()) {
-                            Text("No events on this day.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
+            // Spacer between calendar and events section
+            item { Spacer(Modifier.height(8.dp)) }
 
-            // Event cards for selected day
-            if (selectedDay != null && dayEvents.isNotEmpty()) {
-                items(dayEvents, key = { "cal_event_${it.id}" }) { event ->
-                    CalendarEventCard(
-                        event    = event,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            // Events section — distinct background surface
+            item {
+                val headerText = selectedDay?.format(
+                    java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM d")
+                ) ?: "Upcoming Events"
+
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color    = MaterialTheme.colorScheme.surfaceVariant,
+                    shape    = androidx.compose.foundation.shape.RoundedCornerShape(
+                        topStart = 16.dp, topEnd = 16.dp
+                    )
+                ) {
+                    Text(
+                        text       = headerText,
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier   = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
             }
 
-            // If no day selected, show upcoming events
-            if (selectedDay == null) {
-                item {
-                    Text("All upcoming events",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+            if (selectedDay != null) {
+                if (dayEvents.isEmpty()) {
+                    item {
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color    = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                "No events on this day.",
+                                style    = MaterialTheme.typography.bodyMedium,
+                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                } else {
+                    items(dayEvents, key = { "cal_event_${it.id}" }) { event ->
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color    = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            CalendarEventCard(
+                                event    = event,
+                                category = categoryByHobbyId[event.hobbyId] ?: "",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
-                val now = System.currentTimeMillis()
+            } else {
+                val now      = System.currentTimeMillis()
                 val upcoming = allEvents.filter { it.dateTime >= now }.sortedBy { it.dateTime }
                 if (upcoming.isEmpty()) {
                     item {
-                        Text("No upcoming events.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 16.dp))
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color    = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                "No upcoming events.",
+                                style    = MaterialTheme.typography.bodyMedium,
+                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
                     }
                 } else {
                     items(upcoming, key = { "upcoming_${it.id}" }) { event ->
-                        CalendarEventCard(
-                            event    = event,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color    = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            CalendarEventCard(
+                                event    = event,
+                                category = categoryByHobbyId[event.hobbyId] ?: "",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -265,7 +310,7 @@ private fun CalendarGrid(
         columns = GridCells.Fixed(7),
         modifier = Modifier
             .fillMaxWidth()
-            .height((gridSize / 7 * 52).dp)
+            .height((gridSize / 7 * 52 + 20).dp)
             .padding(horizontal = 4.dp),
         userScrollEnabled = false
     ) {
@@ -326,7 +371,7 @@ private fun CalendarGrid(
 // ── Event card in calendar ─────────────────────────────────────────────────
 
 @Composable
-fun CalendarEventCard(event: Event, modifier: Modifier = Modifier) {
+fun CalendarEventCard(event: Event, category: String = "", modifier: Modifier = Modifier) {
     val fmt     = SimpleDateFormat("HH:mm", Locale.getDefault())
     val context = LocalContext.current
 
@@ -339,7 +384,7 @@ fun CalendarEventCard(event: Event, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Image: user photo > category emoji fallback
-            EventThumbnail(event = event, modifier = Modifier.size(64.dp))
+            EventThumbnail(event = event, category = category, modifier = Modifier.size(64.dp))
 
             Spacer(Modifier.width(12.dp))
 
@@ -378,7 +423,7 @@ fun CalendarEventCard(event: Event, modifier: Modifier = Modifier) {
 // Priority: user photo → category emoji → generic placeholder
 
 @Composable
-fun EventThumbnail(event: Event, modifier: Modifier = Modifier) {
+fun EventThumbnail(event: Event, category: String = "", modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
     Box(
@@ -402,7 +447,7 @@ fun EventThumbnail(event: Event, modifier: Modifier = Modifier) {
             )
         } else {
             // 2. Category emoji fallback
-            val emoji = categoryEmoji(event.name + " " + event.location)
+            val emoji = categoryEmoji(category.ifBlank { event.name })
             Text(emoji, fontSize = 28.sp, textAlign = TextAlign.Center)
         }
     }
