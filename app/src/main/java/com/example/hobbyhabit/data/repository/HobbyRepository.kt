@@ -70,11 +70,17 @@ class HobbyRepository(
 
     fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> {
         val weekStart = weekStartMillis()
+        val now = System.currentTimeMillis()
+
         return combine(
             sessionDao.getSessionCountThisWeek(hobbyId, weekStart),
             eventDao.getEventsForHobby(hobbyId)
         ) { sessionCount, events ->
-            val eventCount = events.count { it.dateTime >= weekStart }
+
+            val eventCount = events.count {
+                it.dateTime in weekStart..now
+            }
+
             sessionCount + eventCount
         }
     }
