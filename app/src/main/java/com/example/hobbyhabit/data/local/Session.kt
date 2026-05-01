@@ -22,5 +22,9 @@ data class Session(
     val hobbyId: Int,
     val durationMinutes: Int,
     val notes: String = "",
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val location: String?,
+    val dateTime: Long,
+    val url: String?,
+    val source: EventSource
 )

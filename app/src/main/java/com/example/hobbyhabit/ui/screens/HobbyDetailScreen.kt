@@ -21,7 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -284,40 +287,35 @@ fun SessionItem(
     onDelete: (Session) -> Unit,
     onEdit: (Session) -> Unit
 ) {
+    val context = LocalContext.current
     val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
     var expanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = CreamPeach)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CreamPeach
+        )
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (session.notes.isNotBlank()) session.notes else "No notes",
+                    text = session.notes.ifBlank { "Untitled Event" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
-                Text(
-                    text = "${session.durationMinutes} min",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+
                 Box {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
+
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
@@ -333,12 +331,61 @@ fun SessionItem(
                     }
                 }
             }
+
             Spacer(Modifier.height(6.dp))
+
+            // 📅 Date
             Text(
-                text = session.timestamp?.let { fmt.format(Date(it)) } ?: "No date",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = fmt.format(Date(session.dateTime)),
+                style = MaterialTheme.typography.bodySmall
             )
+
+            // 📍 Location (optional)
+            session.location?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "📍 $it",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // ⏱ Duration (optional)
+            session.durationMinutes?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "⏱ $it min",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // 🔗 URL (optional)
+            session.url?.takeIf { it.isNotBlank() }?.let { url ->
+                Text(
+                    text = "Open link ↗",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            // 🏷 Manual badge
+            Surface(
+                color = SageGreen,
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = "Manual",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
+            }
         }
     }
 }
@@ -351,6 +398,8 @@ fun LogSessionDialog(
 ) {
     var duration by remember { mutableStateOf(session?.durationMinutes?.toString() ?: "60") }
     var notes by remember { mutableStateOf(session?.notes ?: "") }
+    var location by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
     var selectedDateTime by remember {
         mutableStateOf(
             session?.timestamp?.let {
@@ -379,11 +428,12 @@ fun LogSessionDialog(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes") },
+                    label = { Text("Event name") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3,
                     isError = notes.isBlank()
                 )
+                //duration
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { if (it.all(Char::isDigit)) duration = it },
@@ -392,6 +442,23 @@ fun LogSessionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+                //location
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                //URL
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("URL (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
                 Button(
                     onClick = {
                         if (notes.isBlank()) {
