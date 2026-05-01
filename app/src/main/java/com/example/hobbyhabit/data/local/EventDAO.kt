@@ -37,6 +37,18 @@ interface EventDao {
     @Query("SELECT COUNT(*) FROM events WHERE hobbyId = :hobbyId")
     fun getEventCountForHobby(hobbyId: Int): Flow<Int>
 
+    @Query("""
+    SELECT COUNT(*) 
+    FROM events 
+    WHERE hobbyId = :hobbyId
+    AND dateTime BETWEEN :weekStart AND :now
+""")
+    fun getWeeklyEventCount(
+        hobbyId: Int,
+        weekStart: Long,
+        now: Long
+    ): Flow<Int>
+
     @Query("SELECT * FROM events WHERE hobbyId = :hobbyId AND name = :name LIMIT 1")
     suspend fun findEvent(hobbyId: Int, name: String): Event?
 }

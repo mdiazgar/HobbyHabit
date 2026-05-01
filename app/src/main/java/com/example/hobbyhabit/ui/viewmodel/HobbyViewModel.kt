@@ -14,6 +14,8 @@ import com.example.hobbyhabit.data.local.Event
 import com.example.hobbyhabit.data.local.EventSource
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Calendar
+
 
 class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -39,8 +41,6 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             repository.addHobby(Hobby(name = name, category = category, weeklyGoal = weeklyGoal))
         }
     }
-    fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> =
-        repository.getWeeklyActivityCount(hobbyId)
 
     fun deleteHobby(hobby: Hobby) {
         viewModelScope.launch { repository.deleteHobby(hobby) }
@@ -79,9 +79,6 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     // SESSIONS
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         repository.getSessionsForHobby(hobbyId)
-
-    fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> =
-        repository.getSessionCountThisWeek(hobbyId)
 
     // dateTime is optional — if null, uses current time
 
@@ -133,9 +130,34 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         repository.getEventCountForHobby(hobbyId)
-
     fun deleteEvent(event: Event) {
         viewModelScope.launch { repository.deleteEvent(event) }
+    }
+    private fun weekStartMillis(): Long {
+        val calendar = Calendar.getInstance()
+
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+
+        val diff = (dayOfWeek - Calendar.MONDAY + 7) % 7
+        calendar.add(Calendar.DAY_OF_YEAR, -diff)
+
+        return calendar.timeInMillis
+    }
+    private val _weeklyCounts = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val weeklyCounts: StateFlow<Map<Int, Int>> = _weeklyCounts.asStateFlow()
+
+    fun loadWeeklyCount(hobbyId: Int) {
+        viewModelScope.launch {
+            repository.getWeeklyActivityCount(hobbyId)
+                .collect { count ->
+                    _weeklyCounts.update { it + (hobbyId to count) }
+                }
+        }
     }
 
     fun updateEvent(event: Event) {

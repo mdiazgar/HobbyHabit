@@ -121,8 +121,13 @@ fun HobbyCard(
     onClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val count by viewModel.getWeeklyActivityCount(hobby.id).collectAsState(initial = 0)
+    val weeklyCounts by viewModel.weeklyCounts.collectAsState()
+    val count = weeklyCounts[hobby.id] ?: 0
     val progress = (count.toFloat() / hobby.weeklyGoal).coerceIn(0f, 1f)
+
+    LaunchedEffect(hobby.id) {
+        viewModel.loadWeeklyCount(hobby.id)
+    }
     val progressPercent = (progress * 100).toInt()
     val isGoalReached = progress >= 1f
 

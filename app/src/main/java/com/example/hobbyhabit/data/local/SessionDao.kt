@@ -9,9 +9,12 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE hobbyId = :hobbyId ORDER BY timestamp DESC")
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>>
 
-    @Query("SELECT COUNT(*) FROM sessions WHERE hobbyId = :hobbyId AND timestamp >= :weekStart")
-    fun getSessionCountThisWeek(hobbyId: Int, weekStart: Long): Flow<Int>
-
+    @Query("""
+    SELECT COUNT(*) FROM sessions 
+    WHERE hobbyId = :hobbyId 
+    AND dateTime BETWEEN :weekStart AND :now
+""")
+    fun getSessionCountThisWeek(hobbyId: Int, weekStart: Long, now: Long): Flow<Int>
     @Insert
     suspend fun insertSession(session: Session)
 
