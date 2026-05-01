@@ -10,31 +10,20 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.Calendar
 
+
 class HobbyRepository(
     private val hobbyDao: HobbyDao,
     private val sessionDao: SessionDao,
     private val eventDao: EventDao
 ) {
 
-    // ── Hobbies ───────────────────────────────────────────────────────
+    // HOBBIES
+
     fun getAllHobbies(): Flow<List<Hobby>> = hobbyDao.getAllHobbies()
-    fun getHobbyById(id: Int): Flow<Hobby?> = hobbyDao.getHobbyById(id)
-    suspend fun addHobby(hobby: Hobby) = hobbyDao.insertHobby(hobby)
-    suspend fun deleteHobby(hobby: Hobby) = hobbyDao.deleteHobby(hobby)
-
     // ── Sessions ──────────────────────────────────────────────────────
-    fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
-        sessionDao.getSessionsForHobby(hobbyId)
+    fun getHobbyById(id: Int): Flow<Hobby?> = hobbyDao.getHobbyById(id)
 
-    fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> {
-        val weekStart = weekStartMillis()
-        return sessionDao.getSessionCountThisWeek(hobbyId, weekStart)
-    }
-
-    suspend fun logSession(session: Session) = sessionDao.insertSession(session)
-    suspend fun updateSession(session: Session) = sessionDao.updateSession(session)
-    suspend fun deleteSession(session: Session) = sessionDao.deleteSession(session)
-
+    suspend fun addHobby(hobby: Hobby) = hobbyDao.insertHobby(hobby)
     // ── Events ────────────────────────────────────────────────────────
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
         eventDao.getEventsForHobby(hobbyId)
@@ -44,11 +33,41 @@ class HobbyRepository(
 
     suspend fun addEvent(event: Event) = eventDao.insertEvent(event)
     suspend fun updateEvent(event: Event) = eventDao.updateEvent(event)
-    suspend fun deleteEvent(event: Event) = eventDao.deleteEvent(event)
     suspend fun findEvent(hobbyId: Int, name: String): Event? =
         eventDao.findEvent(hobbyId, name)
 
-    // ── Weekly activity (sessions + events combined) ───────────────────
+    suspend fun updateSession(session: Session) =
+        sessionDao.updateSession(session)
+    suspend fun deleteHobby(hobby: Hobby) =
+        hobbyDao.deleteHobby(hobby)
+
+    suspend fun insertEvent(event: Event) {
+        eventDao.insert(event)
+    }
+    fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
+        sessionDao.getSessionsForHobby(hobbyId)
+
+    fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> {
+        val weekStart = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        return sessionDao.getSessionCountThisWeek(hobbyId, weekStart)
+    }
+
+    suspend fun logSession(session: Session) =
+        sessionDao.insertSession(session)
+    suspend fun deleteSession(session: Session) =
+        sessionDao.deleteSession(session)
+    suspend fun deleteEvent(event: Event) {
+        eventDao.deleteEvent(event)
+    }
+    //WEEKLY TOTAL (SESSIONS + EVENTS)
+
     fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> {
         val weekStart = weekStartMillis()
         return combine(

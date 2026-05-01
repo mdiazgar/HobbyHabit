@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.hobbyhabit.BuildConfig
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
+import com.example.hobbyhabit.ui.theme.progressCardColor
 import com.example.hobbyhabit.ui.viewmodel.EventUiState
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.google.android.gms.location.LocationServices
@@ -421,6 +422,7 @@ fun EventsScreen(
     }
 }
 
+//This is for the ticketmaster side, which shows all of the ticketmaster events.
 @Composable
 fun EventCard(
     event: TicketmasterEvent,
@@ -446,16 +448,18 @@ fun EventCard(
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
                 }
-                // Then signal the ViewModel so the dialog shows when user returns
                 onClick(event)
             },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
             Text(
                 event.name ?: "Unnamed Event",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 

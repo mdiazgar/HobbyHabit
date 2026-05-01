@@ -11,3 +11,4 @@ data class Hobby(
     val weeklyGoal: Int,
     val createdAt: Long = System.currentTimeMillis()
 )
+

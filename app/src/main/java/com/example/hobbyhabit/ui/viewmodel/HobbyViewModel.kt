@@ -25,7 +25,7 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         db.eventDao()
     )
 
-    // ── Hobbies ───────────────────────────────────────────────────────
+    // HOBBIES
     val hobbies: StateFlow<List<Hobby>> = repository.getAllHobbies()
         .stateIn(
             scope = viewModelScope,
@@ -33,49 +33,76 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
+    // name = display name, category = Ticketmaster classification
     fun addHobby(name: String, category: String, weeklyGoal: Int) {
         viewModelScope.launch {
             repository.addHobby(Hobby(name = name, category = category, weeklyGoal = weeklyGoal))
         }
     }
+    fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> =
+        repository.getWeeklyActivityCount(hobbyId)
 
     fun deleteHobby(hobby: Hobby) {
         viewModelScope.launch { repository.deleteHobby(hobby) }
     }
 
-    fun getHobbyById(id: Int): Flow<Hobby?> = repository.getHobbyById(id)
+    fun addManualEvent(
+        hobbyId: Int,
+        name: String,
+        location: String?,
+        dateTime: Long,
+        durationMinutes: Int?,
+        url: String?
+    ) {
+        viewModelScope.launch {
+            repository.insertEvent(
+                Event(
+                    hobbyId = hobbyId,
+                    name = name,
+                    location = location,
+                    dateTime = dateTime,
+                    durationMinutes = durationMinutes,
+                    url = url,
+                    source = EventSource.USER
+                )
+            )
+        }
+    }
+    fun updateSession(session: Session) {
+        viewModelScope.launch {
+            repository.updateSession(session)
+        }
+    }
+    fun getHobbyById(id: Int): Flow<Hobby?> =
+        repository.getHobbyById(id)
 
-    // ── Sessions ──────────────────────────────────────────────────────
+    // SESSIONS
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         repository.getSessionsForHobby(hobbyId)
 
     fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> =
         repository.getSessionCountThisWeek(hobbyId)
 
-    fun getTotalWeeklyActivity(hobbyId: Int): Flow<Int> =
-        repository.getWeeklyActivityCount(hobbyId)
-
-    fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> =
-        repository.getWeeklyActivityCount(hobbyId)
-
     // dateTime is optional — if null, uses current time
+
     fun logSession(
         hobbyId: Int,
         durationMinutes: Int,
         notes: String,
-        dateTime: LocalDateTime? = null,
-        timestamp: Long
-    ) {
+        location: String? = null,
+        dateTime: Long = System.currentTimeMillis(),
+        url: String? = null)
+    {
         viewModelScope.launch {
-            val timestamp = dateTime
-                ?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-                ?: System.currentTimeMillis()
             repository.logSession(
                 Session(
-                    hobbyId         = hobbyId,
+                    hobbyId = hobbyId,
                     durationMinutes = durationMinutes,
-                    notes           = notes,
-                    timestamp       = timestamp
+                    notes = notes,
+                    location = location,
+                    dateTime = dateTime,
+                    url = url,
+                    source = EventSource.USER
                 )
             )
         }
@@ -85,11 +112,16 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.deleteSession(session) }
     }
 
-    fun updateSession(session: Session) {
-        viewModelScope.launch { repository.updateSession(session) }
-    }
+    // EVENTS
+    fun getEventsForHobby(hobbyId: Int): Flow<List<com.example.hobbyhabit.data.local.Event>> =
+        repository.getEventsForHobby(hobbyId)
 
-    // Session editing state
+    // WEEKLY TOTAL (SESSIONS + EVENTS)
+
+    fun getTotalWeeklyActivity(hobbyId: Int): Flow<Int> =
+        repository.getWeeklyActivityCount(hobbyId)
+
+    // SESSION EDITING
     private val _editingSession = mutableStateOf<Session?>(null)
     val editingSession: State<Session?> = _editingSession
 
@@ -98,34 +130,9 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ── Events ────────────────────────────────────────────────────────
-    fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
-        repository.getEventsForHobby(hobbyId)
 
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         repository.getEventCountForHobby(hobbyId)
-
-    fun addManualEvent(
-        hobbyId: Int,
-        name: String,
-        location: String,
-        dateTime: Long,
-        durationMinutes: Int?,
-        url: String?
-    ) {
-        viewModelScope.launch {
-            repository.addEvent(
-                Event(
-                    hobbyId         = hobbyId,
-                    name            = name.trim(),
-                    location        = location.trim(),
-                    dateTime        = dateTime,
-                    durationMinutes = durationMinutes,
-                    url             = url?.trim()?.takeIf { it.isNotBlank() },
-                    source          = EventSource.USER
-                )
-            )
-        }
-    }
 
     fun deleteEvent(event: Event) {
         viewModelScope.launch { repository.deleteEvent(event) }

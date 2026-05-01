@@ -1,85 +1,49 @@
 package com.example.hobbyhabit.ui.screens
 
-import android.app.DatePickerDialog
-import android.app.TimePickerDialog
-import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.foundation.clickable
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Date
+import java.util.Locale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import com.example.hobbyhabit.data.local.Event
 import com.example.hobbyhabit.data.local.EventSource
 import com.example.hobbyhabit.data.local.Session
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
+import com.example.hobbyhabit.ui.theme.BlushPink
+import com.example.hobbyhabit.ui.theme.CreamPeach
+import com.example.hobbyhabit.ui.theme.WarmGray
+import com.example.hobbyhabit.ui.theme.DustyRose
+import com.example.hobbyhabit.ui.theme.SageGreen
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-
-private sealed class HistoryItem {
-    abstract val timestamp: Long
-
-    data class LoggedSession(val session: Session) : HistoryItem() {
-        override val timestamp: Long
-            get() = session.timestamp
-    }
-
-    data class LoggedPastEvent(val event: Event) : HistoryItem() {
-        override val timestamp: Long
-            get() = event.dateTime
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,99 +56,52 @@ fun HobbyDetailScreen(
     val hobby by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
     val sessions by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
     val weeklyCount by viewModel.getTotalWeeklyActivity(hobbyId).collectAsState(initial = 0)
-    val events by viewModel.getEventsForHobby(hobbyId).collectAsState(initial = emptyList())
-    val editingSession by viewModel.editingSession
-
-    var showAddEventDialog by rememberSaveable { mutableStateOf(false) }
-    var showEditSessionDialog by rememberSaveable { mutableStateOf(false) }
-    var eventToEdit by remember { mutableStateOf<Event?>(null) }
-
-    var currentTimeMillis by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            currentTimeMillis = System.currentTimeMillis()
-            delay(30_000L)
-        }
-    }
-
-    val futureEvents = remember(events, currentTimeMillis) {
-        events
-            .filter { it.dateTime >= currentTimeMillis }
-            .sortedBy { it.dateTime }
-    }
-
-    val pastEvents = remember(events, currentTimeMillis) {
-        events
-            .filter { it.dateTime < currentTimeMillis }
-            .sortedByDescending { it.dateTime }
-    }
-
-    val historyItems = remember(sessions, pastEvents) {
-        val sessionItems = sessions.map { HistoryItem.LoggedSession(it) }
-        val pastEventItems = pastEvents.map { HistoryItem.LoggedPastEvent(it) }
-
-        (sessionItems + pastEventItems)
-            .sortedByDescending { it.timestamp }
-    }
-
+    var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    fun getCurrentWeekRange(): String {
-        val calendar = Calendar.getInstance()
-
-        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7
-        calendar.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
-
-        val monday = calendar.time
-
-        calendar.add(Calendar.DAY_OF_MONTH, 6)
-        val sunday = calendar.time
-
-        val formatter = SimpleDateFormat("MMM d", Locale.getDefault())
-        return "${formatter.format(monday)} – ${formatter.format(sunday)}"
-    }
+    val events by viewModel.getEventsForHobby(hobbyId).collectAsState(initial = emptyList())
+    val now = System.currentTimeMillis()
+    val upcomingEvents = events.filter { it.dateTime > now }
+    val pastEvents = events.filter { it.dateTime <= now }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(hobby?.name ?: "") },
+                title = {
+                    Text(
+                        hobby?.name ?: "",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = {
-                            hobby?.let { onFindEvents(it.name, it.category) }
-                        }
-                    ) {
-                        Icon(
-                            Icons.Default.Event,
-                            contentDescription = "Find Events"
-                        )
+                    IconButton(onClick = {
+                        hobby?.let { onFindEvents(it.name, it.category) }
+                    }) {
+                        Icon(Icons.Default.Event, contentDescription = "Find Events")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = {
-                    eventToEdit = null
-                    showAddEventDialog = true
-                },
-                icon = {
-                    Icon(
-                        Icons.Default.AddCircle,
-                        contentDescription = null
-                    )
-                },
-                text = { Text("Log Event") }
+                onClick = { showDialog = true },
+                icon = { Icon(Icons.Default.AddCircle, contentDescription = null) },
+                text = { Text("Log Session") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         }
     ) { padding ->
@@ -196,57 +113,61 @@ fun HobbyDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
+
+            // Progress summary card
             item {
                 hobby?.let { h ->
-                    val safeGoal = h.weeklyGoal.coerceAtLeast(1)
-                    val progress = (weeklyCount.toFloat() / safeGoal).coerceIn(0f, 1f)
+                    val progress = (weeklyCount.toFloat() / h.weeklyGoal.coerceAtLeast(1))
+                        .coerceIn(0f, 1f)
+                    val isGoalReached = progress >= 1f
+
+                    // Same logic as HobbyCard in HomeScreen
+                    val cardColor = when {
+                        isGoalReached  -> BlushPink
+                        progress <= 0f -> WarmGray
+                        else           -> CreamPeach
+                    }
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        colors = CardDefaults.cardColors(containerColor = cardColor)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Category: ${h.category}",
+                                "Category: ${h.category}",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-
                             Spacer(Modifier.height(4.dp))
-
                             Text(
-                                text = getCurrentWeekRange(),
-                                style = MaterialTheme.typography.labelLarge
+                                "This Week",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-
                             Spacer(Modifier.height(4.dp))
-
                             Text(
-                                text = "$weeklyCount / ${h.weeklyGoal} sessions",
+                                "$weeklyCount / ${h.weeklyGoal} sessions",
                                 style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-
                             Spacer(Modifier.height(10.dp))
-
                             LinearProgressIndicator(
                                 progress = { progress },
-                                modifier = Modifier.fillMaxWidth(),
-                                color = if (progress >= 1f) {
-                                    MaterialTheme.colorScheme.tertiary
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                }
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = SageGreen.copy(alpha = 0.25f)
                             )
-
-                            if (progress >= 1f) {
+                            if (isGoalReached) {
                                 Spacer(Modifier.height(6.dp))
-
                                 Text(
-                                    text = "Goal reached! Now find or log an event.",
-                                    color = MaterialTheme.colorScheme.tertiary,
+                                    "Goal reached!",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Medium,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -255,207 +176,131 @@ fun HobbyDetailScreen(
                 }
             }
 
+            // Session history header
             item {
                 Text(
-                    text = "Session History",
+                    "Session History",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
-            if (historyItems.isEmpty()) {
+            if (sessions.isEmpty() && upcomingEvents.isEmpty() && pastEvents.isEmpty()) {
                 item {
                     Text(
-                        text = "No sessions or past events yet.",
+                        "No activity yet — log a session or register for an event!",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                items(
-                    items = historyItems,
-                    key = { item ->
-                        when (item) {
-                            is HistoryItem.LoggedSession -> "session_${item.session.id}"
-                            is HistoryItem.LoggedPastEvent -> "past_event_${item.event.id}"
+                items(sessions, key = { "session_${it.id}" }) { session ->
+                    SessionItem(
+                        session = session,
+                        onDelete = { viewModel.deleteSession(it) },
+                        onEdit = {
+                            viewModel.startEditingSession(it)
+                            showDialog = true
                         }
-                    }
-                ) { item ->
-                    when (item) {
-                        is HistoryItem.LoggedSession -> {
-                            SessionItem(
-                                session = item.session,
-                                onDelete = {
-                                    viewModel.deleteSession(it)
-                                    Toast.makeText(
-                                        context,
-                                        "Session deleted",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                onEdit = {
-                                    viewModel.startEditingSession(it)
-                                    showEditSessionDialog = true
-                                }
-                            )
-                        }
+                    )
+                }
 
-                        is HistoryItem.LoggedPastEvent -> {
-                            EventItem(
-                                event = item.event,
-                                onDelete = {
-                                    viewModel.deleteEvent(it)
-                                    Toast.makeText(
-                                        context,
-                                        "Event deleted",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                onEdit = {
-                                    eventToEdit = it
-                                }
-                            )
-                        }
+                if (pastEvents.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Past Events",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    items(pastEvents, key = { "past_event_${it.id}" }) { event ->
+                        EventItem(
+                            event = event,
+                            onDelete = { viewModel.deleteEvent(it) }
+                        )
                     }
                 }
             }
 
             item {
                 Text(
-                    text = "Upcoming Events",
+                    "Upcoming Events",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
-            if (futureEvents.isEmpty()) {
+            if (upcomingEvents.isEmpty()) {
                 item {
                     Text(
-                        text = "No upcoming events.",
+                        "No upcoming events",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
-                items(
-                    items = futureEvents,
-                    key = { "future_event_${it.id}" }
-                ) { event ->
+                items(upcomingEvents, key = { "upcoming_event_${it.id}" }) { event ->
                     EventItem(
                         event = event,
-                        onDelete = {
-                            viewModel.deleteEvent(it)
-                            Toast.makeText(
-                                context,
-                                "Event deleted",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        },
-                        onEdit = {
-                            eventToEdit = it
-                        }
+                        onDelete = { viewModel.deleteEvent(it) }
                     )
                 }
             }
         }
     }
 
-    if (showAddEventDialog) {
-        EventFormDialog(
-            title = "Log Event",
-            initialName = "",
-            initialLocation = "",
-            initialDateTime = null,
-            initialDuration = "",
-            initialUrl = "",
-            confirmLabel = "Save",
+    val editingSession by viewModel.editingSession
+
+    if (showDialog) {
+        LogSessionDialog(
+            session = editingSession,
             onDismiss = {
-                showAddEventDialog = false
-            },
-            onConfirm = { name, location, dateTimeMillis, durationMinutes, url ->
-                viewModel.addManualEvent(
-                    hobbyId = hobbyId,
-                    name = name,
-                    location = location,
-                    dateTime = dateTimeMillis,
-                    durationMinutes = durationMinutes,
-                    url = url
-                )
-
-                Toast.makeText(
-                    context,
-                    if (dateTimeMillis >= System.currentTimeMillis()) {
-                        "Upcoming event added"
-                    } else {
-                        "Event added to Session History"
-                    },
-                    Toast.LENGTH_SHORT
-                ).show()
-
-                showAddEventDialog = false
-            }
-        )
-    }
-
-    if (showEditSessionDialog && editingSession != null) {
-        SessionFormDialog(
-            editingSession = editingSession!!,
-            onDismiss = {
-                showEditSessionDialog = false
+                showDialog = false
                 viewModel.startEditingSession(null)
             },
-            onConfirm = { updatedSession ->
-                viewModel.updateSession(updatedSession)
+            onConfirm = { duration, notes, dateTime ->
 
-                Toast.makeText(
-                    context,
-                    "Session updated",
-                    Toast.LENGTH_SHORT
-                ).show()
+                val millis = dateTime
+                    ?.atZone(java.time.ZoneId.systemDefault())
+                    ?.toInstant()
+                    ?.toEpochMilli()
+                    ?: System.currentTimeMillis()
 
-                showEditSessionDialog = false
-                viewModel.startEditingSession(null)
-            }
-        )
-    }
+                val now = System.currentTimeMillis()
 
-    eventToEdit?.let { ev ->
-        EventFormDialog(
-            title = "Edit Event",
-            initialName = ev.name,
-            initialLocation = ev.location,
-            initialDateTime = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(ev.dateTime),
-                ZoneId.systemDefault()
-            ),
-            initialDuration = ev.durationMinutes?.toString() ?: "",
-            initialUrl = ev.url ?: "",
-            confirmLabel = "Save",
-            onDismiss = {
-                eventToEdit = null
-            },
-            onConfirm = { name, location, dateTimeMillis, durationMinutes, url ->
-                viewModel.updateEvent(
-                    ev.copy(
-                        name = name,
-                        location = location,
-                        dateTime = dateTimeMillis,
-                        durationMinutes = durationMinutes,
-                        url = url
+                if (editingSession != null) {
+                    val updated = editingSession!!.copy(
+                        durationMinutes = duration,
+                        notes = notes,
+                        dateTime = millis
                     )
-                )
-
-                Toast.makeText(
-                    context,
-                    if (dateTimeMillis >= System.currentTimeMillis()) {
-                        "Event moved to Upcoming Events"
+                    viewModel.updateSession(updated)
+                } else {
+                    if (millis > now) {
+                        // FUTURE: save as EVENT
+                        viewModel.addManualEvent(
+                            hobbyId = hobbyId,
+                            name = notes,
+                            location = null,
+                            dateTime = millis,
+                            durationMinutes = duration,
+                            url = null
+                        )
                     } else {
-                        "Event moved to Session History"
-                    },
-                    Toast.LENGTH_SHORT
-                ).show()
+                    // 👉 PAST → save as SESSION
+                    viewModel.logSession(
+                        hobbyId = hobbyId,
+                        durationMinutes = duration,
+                        notes = notes,
+                        dateTime = millis
+                    ) }
+                }
 
-                eventToEdit = null
+                showDialog = false
+                viewModel.startEditingSession(null)
             }
         )
     }
@@ -467,38 +312,33 @@ fun SessionItem(
     onDelete: (Session) -> Unit,
     onEdit: (Session) -> Unit
 ) {
+    val context = LocalContext.current
     val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
     var expanded by remember { mutableStateOf(false) }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(14.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = CreamPeach
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (session.notes.isNotBlank()) {
-                        session.notes
-                    } else {
-                        "No notes"
-                    },
+                    text = session.notes.ifBlank { "Untitled Event" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
                 )
 
-                Text(
-                    text = "${session.durationMinutes} min",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-
                 Box {
                     IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu"
-                        )
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
 
                     DropdownMenu(
@@ -507,18 +347,11 @@ fun SessionItem(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Edit") },
-                            onClick = {
-                                expanded = false
-                                onEdit(session)
-                            }
+                            onClick = { expanded = false; onEdit(session) }
                         )
-
                         DropdownMenuItem(
                             text = { Text("Delete") },
-                            onClick = {
-                                expanded = false
-                                onDelete(session)
-                            }
+                            onClick = { expanded = false; onDelete(session) }
                         )
                     }
                 }
@@ -526,176 +359,123 @@ fun SessionItem(
 
             Spacer(Modifier.height(6.dp))
 
+            // 📅 Date
             Text(
-                text = fmt.format(Date(session.timestamp)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = fmt.format(Date(session.dateTime)),
+                style = MaterialTheme.typography.bodySmall
             )
-        }
-    }
-}
 
-@Composable
-fun EventItem(
-    event: Event,
-    onDelete: (Event) -> Unit,
-    onEdit: (Event) -> Unit
-) {
-    val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
-    var expanded by remember { mutableStateOf(false) }
+            // 📍 Location (optional)
+            session.location?.takeIf { it.isNotBlank() }?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "📍 $it",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            // ⏱ Duration (optional)
+            session.durationMinutes?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "⏱ $it min",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // 🔗 URL (optional)
+            session.url?.takeIf { it.isNotBlank() }?.let { url ->
+                Text(
+                    text = "Open link ↗",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(6.dp))
+
+            // 🏷 Manual badge
+            Surface(
+                color = SageGreen,
+                shape = RoundedCornerShape(20.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = event.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(Modifier.height(4.dp))
-
-                    Text(
-                        text = fmt.format(Date(event.dateTime)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (event.location.isNotBlank()) {
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = event.location,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    event.durationMinutes?.let {
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = "$it minutes",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    event.url?.takeIf { it.isNotBlank() }?.let {
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(Modifier.height(4.dp))
-
-                    Text(
-                        text = when (event.source) {
-                            EventSource.TICKETMASTER -> "Ticketmaster Event"
-                            EventSource.USER -> "Manual Event"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Box {
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "Menu"
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Edit") },
-                            onClick = {
-                                expanded = false
-                                onEdit(event)
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = {
-                                expanded = false
-                                onDelete(event)
-                            }
-                        )
-                    }
-                }
+                Text(
+                    text = "Manual",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
             }
         }
     }
 }
 
 @Composable
-fun EventFormDialog(
-    title: String,
-    initialName: String,
-    initialLocation: String,
-    initialDateTime: LocalDateTime?,
-    initialDuration: String,
-    initialUrl: String,
-    confirmLabel: String,
+fun LogSessionDialog(
+    session: Session? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Long, Int?, String?) -> Unit
+    onConfirm: (Int, String, LocalDateTime?) -> Unit
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var location by remember { mutableStateOf(initialLocation) }
-    var duration by remember { mutableStateOf(initialDuration) }
-    var url by remember { mutableStateOf(initialUrl) }
-    var selectedDateTime by remember { mutableStateOf(initialDateTime) }
-
+    var duration by remember { mutableStateOf(session?.durationMinutes?.toString() ?: "60") }
+    var notes by remember { mutableStateOf(session?.notes ?: "") }
+    var location by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var selectedDateTime by remember {
+        mutableStateOf(
+            session?.timestamp?.let {
+                LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(it),
+                    java.time.ZoneId.systemDefault()
+                )
+            }
+        )
+    }
     val context = LocalContext.current
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        containerColor = CreamPeach,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
+        textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        title = {
+            Text(
+                if (session == null) "Log Session" else "Edit Session",
+                fontWeight = FontWeight.SemiBold
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    value = notes,
+                    onValueChange = { notes = it },
                     label = { Text("Event name") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = name.isBlank()
+                    maxLines = 3,
+                    isError = notes.isBlank()
                 )
-
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    label = { Text("Location") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
+                //duration
                 OutlinedTextField(
                     value = duration,
-                    onValueChange = {
-                        if (it.all(Char::isDigit)) {
-                            duration = it
-                        }
-                    },
-                    label = { Text("Duration in minutes (optional)") },
+                    onValueChange = { if (it.all(Char::isDigit)) duration = it },
+                    label = { Text("Duration (minutes)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
-
+                //location
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    label = { Text("Location (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                //URL
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
@@ -706,32 +486,35 @@ fun EventFormDialog(
 
                 Button(
                     onClick = {
-                        val baseDate = selectedDateTime?.toLocalDate() ?: LocalDate.now()
-
+                        if (notes.isBlank()) {
+                            Toast.makeText(context, "Please enter notes first",
+                                Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val now = LocalDate.now()
                         DatePickerDialog(
                             context,
                             { _, year, month, day ->
-                                val selectedDate = LocalDate.of(year, month + 1, day)
-
+                                val pickedDate = LocalDate.of(year, month + 1, day)
                                 TimePickerDialog(
                                     context,
                                     { _, hour, minute ->
-                                        selectedDateTime = selectedDate.atTime(hour, minute)
+                                        selectedDateTime = pickedDate.atTime(hour, minute)
                                     },
-                                    selectedDateTime?.hour ?: 12,
-                                    selectedDateTime?.minute ?: 0,
-                                    true
+                                    12, 0, true
                                 ).show()
                             },
-                            baseDate.year,
-                            baseDate.monthValue - 1,
-                            baseDate.dayOfMonth
+                            now.year, now.monthValue - 1, now.dayOfMonth
                         ).show()
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     Text(
-                        text = selectedDateTime?.format(
+                        selectedDateTime?.format(
                             DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
                         ) ?: "Select Date & Time"
                     )
@@ -741,149 +524,88 @@ fun EventFormDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (name.isBlank()) {
-                        Toast.makeText(
-                            context,
-                            "Event name is required",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    if (notes.isBlank()) {
+                        Toast.makeText(context, "Notes are required", Toast.LENGTH_SHORT).show()
                         return@TextButton
                     }
-
-                    val dt = selectedDateTime
-
-                    if (dt == null) {
-                        Toast.makeText(
-                            context,
-                            "Please select date and time",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@TextButton
-                    }
-
-                    onConfirm(
-                        name.trim(),
-                        location.trim(),
-                        dt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-                        duration.toIntOrNull()?.takeIf { it > 0 },
-                        url.trim().takeIf { it.isNotBlank() }
-                    )
+                    onConfirm(duration.toIntOrNull() ?: 30, notes, selectedDateTime)
                 }
             ) {
-                Text(confirmLabel)
+                Text(
+                    if (session == null) "Log" else "Save",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
 }
 
 @Composable
-fun SessionFormDialog(
-    editingSession: Session,
-    onDismiss: () -> Unit,
-    onConfirm: (Session) -> Unit
+fun EventItem(
+    event: Event,
+    onDelete: (Event) -> Unit
 ) {
-    var notes by remember { mutableStateOf(editingSession.notes) }
-    var duration by remember { mutableStateOf(editingSession.durationMinutes.toString()) }
-    var selectedDateTime by remember {
-        mutableStateOf(
-            LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(editingSession.timestamp),
-                ZoneId.systemDefault()
-            )
-        )
+    val cardColor = when (event.source) {
+        EventSource.TICKETMASTER -> DustyRose
+        EventSource.USER         -> WarmGray
     }
 
-    val context = LocalContext.current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Session") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-
-                OutlinedTextField(
-                    value = duration,
-                    onValueChange = {
-                        if (it.all(Char::isDigit)) {
-                            duration = it
-                        }
-                    },
-                    label = { Text("Duration (minutes)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-
-                Button(
-                    onClick = {
-                        val baseDate = selectedDateTime.toLocalDate()
-
-                        DatePickerDialog(
-                            context,
-                            { _, year, month, day ->
-                                val selectedDate = LocalDate.of(year, month + 1, day)
-
-                                TimePickerDialog(
-                                    context,
-                                    { _, hour, minute ->
-                                        selectedDateTime = selectedDate.atTime(hour, minute)
-                                    },
-                                    selectedDateTime.hour,
-                                    selectedDateTime.minute,
-                                    true
-                                ).show()
-                            },
-                            baseDate.year,
-                            baseDate.monthValue - 1,
-                            baseDate.dayOfMonth
-                        ).show()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = selectedDateTime.format(
-                            DateTimeFormatter.ofPattern("MMM dd, yyyy HH:mm")
-                        )
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val updatedTimestamp = selectedDateTime
-                        .atZone(ZoneId.systemDefault())
-                        .toInstant()
-                        .toEpochMilli()
-
-                    onConfirm(
-                        editingSession.copy(
-                            durationMinutes = duration.toIntOrNull()?.takeIf { it > 0 } ?: 30,
-                            notes = notes.trim(),
-                            timestamp = updatedTimestamp
-                        )
-                    )
-                }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Save")
+                Text(
+                    text = event.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { onDelete(event) }) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            Spacer(Modifier.height(6.dp))
+            val fmt = SimpleDateFormat("MMM dd, yyyy · HH:mm", Locale.getDefault())
+            Text(
+                text = fmt.format(Date(event.dateTime)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                color = when (event.source) {
+                    EventSource.TICKETMASTER -> MaterialTheme.colorScheme.tertiary
+                    EventSource.USER         -> SageGreen
+                },
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = when (event.source) {
+                        EventSource.TICKETMASTER -> "Ticketmaster"
+                        EventSource.USER         -> "Manual"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                )
             }
         }
-    )
+    }
 }

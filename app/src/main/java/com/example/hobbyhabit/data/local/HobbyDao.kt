@@ -10,6 +10,7 @@ interface HobbyDao {
     @Query("SELECT * FROM hobbies ORDER BY createdAt DESC")
     fun getAllHobbies(): Flow<List<Hobby>>
 
+
     @Query("SELECT * FROM hobbies WHERE id = :id")
     fun getHobbyById(id: Int): Flow<Hobby?>
 
