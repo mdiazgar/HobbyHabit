@@ -18,13 +18,14 @@ import androidx.room.PrimaryKey
     indices = [Index("hobbyId")]
 )
 data class Session(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = 0,
+
     val hobbyId: Int,
+
     val durationMinutes: Int,
+
     val notes: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
-    val location: String?,
-    val dateTime: Long,
-    val url: String?,
-    val source: EventSource
+
+    val timestamp: Long = System.currentTimeMillis()
 )
