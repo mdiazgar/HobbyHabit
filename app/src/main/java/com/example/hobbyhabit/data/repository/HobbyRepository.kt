@@ -64,7 +64,8 @@ class HobbyRepository(
             sessionDao.getSessionCountThisWeek(hobbyId, weekStart),
             eventDao.getEventsForHobby(hobbyId)
         ) { sessionCount, events ->
-            sessionCount + events.count { it.dateTime >= weekStart }
+            val now = System.currentTimeMillis()
+            sessionCount + events.count { it.dateTime in weekStart..now }
         }
     }
 
