@@ -9,7 +9,7 @@ import androidx.room.TypeConverters
 @TypeConverters(EventConverters::class)
 @Database(
     entities = [Hobby::class, Session::class, User::class, Event::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class HobbyDatabase : RoomDatabase() {

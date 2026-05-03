@@ -60,21 +60,25 @@ class HobbyRepository(
     // ── Weekly activity (sessions + events this week) ─────────────────
     fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> {
         val weekStart = weekStartMillis()
+        val now = System.currentTimeMillis()
+
         return combine(
             sessionDao.getSessionCountThisWeek(hobbyId, weekStart),
-            eventDao.getEventsForHobby(hobbyId)
-        ) { sessionCount, events ->
-            val now = System.currentTimeMillis()
-            sessionCount + events.count { it.dateTime in weekStart..now }
+            eventDao.getWeeklyEventCount(hobbyId, weekStart, now)
+        ) { sessions, events ->
+            sessions + events
         }
     }
 
-    private fun weekStartMillis(): Long =
-        Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
+    private fun weekStartMillis(): Long {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val diff = (dayOfWeek - Calendar.MONDAY + 7) % 7
+        calendar.add(Calendar.DAY_OF_YEAR, -diff)
+        return calendar.timeInMillis
+    }
 }

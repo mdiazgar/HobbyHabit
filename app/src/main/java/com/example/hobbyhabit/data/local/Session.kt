@@ -22,5 +22,6 @@ data class Session(
     val hobbyId: Int,
     val durationMinutes: Int,
     val notes: String = "",
+    val dateTime: Long,
     val timestamp: Long = System.currentTimeMillis()
 )
