@@ -4,10 +4,12 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
+@TypeConverters(EventConverters::class)
 @Database(
     entities = [Hobby::class, Session::class, User::class, Event::class],
-    version = 6,               // bumped — Event gained imageUri, isCustomCategory, createdAt
+    version = 7,
     exportSchema = false
 )
 abstract class HobbyDatabase : RoomDatabase() {

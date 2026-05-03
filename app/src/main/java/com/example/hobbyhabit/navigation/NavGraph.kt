@@ -13,6 +13,7 @@ import com.example.hobbyhabit.ui.screens.EventsScreen
 import com.example.hobbyhabit.ui.screens.HobbyDetailScreen
 import com.example.hobbyhabit.ui.screens.HomeScreen
 import com.example.hobbyhabit.ui.screens.ProfileScreen
+import com.example.hobbyhabit.ui.screens.StatsScreen
 import com.example.hobbyhabit.ui.viewmodel.EventViewModel
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 import com.example.hobbyhabit.ui.viewmodel.UserViewModel
@@ -27,7 +28,9 @@ sealed class Screen(val route: String) {
     object HobbyDetail : Screen("hobby_detail/{hobbyId}") {
         fun createRoute(hobbyId: Int) = "hobby_detail/$hobbyId"
     }
-
+    object Stats : Screen("stats/{hobbyId}") {
+        fun createRoute(hobbyId: Int) = "stats/$hobbyId"
+    }
     object Events : Screen("events/{hobbyName}/{category}") {
         fun createRoute(hobbyName: String, category: String) =
             "events/${hobbyName.replace("/", "-")}/${category.replace("/", "-")}"
@@ -47,7 +50,6 @@ fun NavGraph(
         startDestination = Screen.Home.route,
         modifier         = modifier
     ) {
-
         composable(Screen.Home.route) {
             HomeScreen(
                 viewModel      = hobbyViewModel,
@@ -76,7 +78,20 @@ fun NavGraph(
                 onBack       = { navController.popBackStack() },
                 onFindEvents = { hobbyName, category ->
                     navController.navigate(Screen.Events.createRoute(hobbyName, category))
-                }
+                },
+                onViewStats  = { navController.navigate(Screen.Stats.createRoute(hobbyId)) }
+            )
+        }
+
+        composable(
+            route     = Screen.Stats.route,
+            arguments = listOf(navArgument("hobbyId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val hobbyId = backStackEntry.arguments!!.getInt("hobbyId")
+            StatsScreen(
+                hobbyId  = hobbyId,
+                viewModel = hobbyViewModel,
+                onBack   = { navController.popBackStack() }
             )
         }
 
@@ -97,7 +112,6 @@ fun NavGraph(
             )
         }
 
-        // Global event browser tab
         composable(Screen.EventBrowser.route) {
             EventsScreen(
                 hobbyName = "All",
@@ -107,7 +121,6 @@ fun NavGraph(
             )
         }
 
-        // Calendar tab
         composable(Screen.Calendar.route) {
             CalendarScreen(viewModel = hobbyViewModel)
         }

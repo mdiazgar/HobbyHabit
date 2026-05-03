@@ -26,6 +26,8 @@ class HobbyRepository(
     fun getSessionsForHobby(hobbyId: Int): Flow<List<Session>> =
         sessionDao.getSessionsForHobby(hobbyId)
 
+    fun getAllSessions(): Flow<List<Session>> = sessionDao.getAllSessions()
+
     fun getSessionCountThisWeek(hobbyId: Int): Flow<Int> {
         return sessionDao.getSessionCountThisWeek(hobbyId, weekStartMillis())
     }
@@ -43,11 +45,9 @@ class HobbyRepository(
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         eventDao.getEventCountForHobby(hobbyId)
 
-    // Calendar: events between two timestamps
     fun getEventsBetween(startMillis: Long, endMillis: Long): Flow<List<Event>> =
         eventDao.getEventsBetween(startMillis, endMillis)
 
-    // Calendar: events for a specific day
     fun getEventsForDay(dayStart: Long, dayEnd: Long): Flow<List<Event>> =
         eventDao.getEventsForDay(dayStart, dayEnd)
 
@@ -64,8 +64,7 @@ class HobbyRepository(
             sessionDao.getSessionCountThisWeek(hobbyId, weekStart),
             eventDao.getEventsForHobby(hobbyId)
         ) { sessionCount, events ->
-            val eventCount = events.count { it.dateTime >= weekStart }
-            sessionCount + eventCount
+            sessionCount + events.count { it.dateTime >= weekStart }
         }
     }
 

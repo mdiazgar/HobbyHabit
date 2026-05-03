@@ -83,8 +83,11 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _editingSession = mutableStateOf<Session?>(null)
     val editingSession: State<Session?> = _editingSession
-
     fun startEditingSession(session: Session?) { _editingSession.value = session }
+
+    // All sessions — used for stats and streak
+    val allSessions: StateFlow<List<Session>> = repository.getAllSessions()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Events ────────────────────────────────────────────────────────
     fun getEventsForHobby(hobbyId: Int): Flow<List<Event>> =
@@ -93,7 +96,6 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         repository.getEventCountForHobby(hobbyId)
 
-    // All events — used by calendar
     val allEvents: StateFlow<List<Event>> = repository.getAllEvents()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -109,14 +111,14 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.addEvent(
                 Event(
-                    hobbyId         = hobbyId,
-                    name            = name.trim(),
-                    location        = location.trim(),
-                    dateTime        = dateTime,
-                    durationMinutes = durationMinutes,
-                    url             = url?.trim()?.takeIf { it.isNotBlank() },
-                    source          = EventSource.USER,
-                    imageUri        = imageUri,
+                    hobbyId          = hobbyId,
+                    name             = name.trim(),
+                    location         = location.trim(),
+                    dateTime         = dateTime,
+                    durationMinutes  = durationMinutes,
+                    url              = url?.trim()?.takeIf { it.isNotBlank() },
+                    source           = EventSource.USER,
+                    imageUri         = imageUri,
                     isCustomCategory = true
                 )
             )
@@ -132,15 +134,12 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // ── Calendar ──────────────────────────────────────────────────────
-
-    // Currently displayed month on the calendar
     private val _calendarMonth = MutableStateFlow(YearMonth.now())
     val calendarMonth: StateFlow<YearMonth> = _calendarMonth
 
-    fun nextMonth()  { _calendarMonth.value = _calendarMonth.value.plusMonths(1) }
-    fun prevMonth()  { _calendarMonth.value = _calendarMonth.value.minusMonths(1) }
+    fun nextMonth() { _calendarMonth.value = _calendarMonth.value.plusMonths(1) }
+    fun prevMonth() { _calendarMonth.value = _calendarMonth.value.minusMonths(1) }
 
-    // Selected day in the calendar
     private val _selectedDay = MutableStateFlow<LocalDate?>(null)
     val selectedDay: StateFlow<LocalDate?> = _selectedDay
 
@@ -148,15 +147,13 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
         _selectedDay.value = if (_selectedDay.value == date) null else date
     }
 
-    // Get events for a specific day from allEvents
     fun eventsForDay(date: LocalDate, events: List<Event>): List<Event> {
-        val zoneId  = ZoneId.systemDefault()
+        val zoneId   = ZoneId.systemDefault()
         val dayStart = date.atStartOfDay(zoneId).toInstant().toEpochMilli()
         val dayEnd   = date.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
         return events.filter { it.dateTime in dayStart until dayEnd }
     }
 
-    // Set of days that have events — used to mark calendar dots
     fun daysWithEvents(month: YearMonth, events: List<Event>): Set<LocalDate> {
         val zoneId = ZoneId.systemDefault()
         return events.mapNotNull { event ->
@@ -167,4 +164,115 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) { null }
         }.toSet()
     }
+
+    // ── Stats ─────────────────────────────────────────────────────────
+
+    /** Total minutes logged for a hobby */
+    fun totalMinutes(sessions: List<Session>): Int =
+        sessions.sumOf { it.durationMinutes }
+
+    /** Average session duration in minutes */
+    fun avgMinutes(sessions: List<Session>): Int =
+        if (sessions.isEmpty()) 0 else totalMinutes(sessions) / sessions.size
+
+    /** Current consecutive-week streak for a hobby.
+     *  A week counts if the user logged at least [weeklyGoal] sessions/events. */
+    fun currentStreak(sessions: List<Session>, events: List<Event>, weeklyGoal: Int): Int {
+        if (weeklyGoal == 0) return 0
+        val zoneId = ZoneId.systemDefault()
+
+        // Combine session and event timestamps into a set of (year, week) pairs
+        fun epochToWeek(millis: Long): Pair<Int, Int> {
+            val date = java.time.Instant.ofEpochMilli(millis).atZone(zoneId).toLocalDate()
+            val wf   = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+            return date.get(wf.weekOfWeekBasedYear()) to date.get(wf.weekBasedYear())
+        }
+
+        // Count activity per week
+        val activityPerWeek = mutableMapOf<Pair<Int, Int>, Int>()
+        sessions.forEach { s ->
+            val key = epochToWeek(s.timestamp)
+            activityPerWeek[key] = (activityPerWeek[key] ?: 0) + 1
+        }
+        events.forEach { e ->
+            val key = epochToWeek(e.dateTime)
+            activityPerWeek[key] = (activityPerWeek[key] ?: 0) + 1
+        }
+
+        // Walk backwards from current week counting consecutive goal-hit weeks
+        val wf      = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+        var current = LocalDate.now()
+        var streak  = 0
+
+        while (true) {
+            val key   = current.get(wf.weekOfWeekBasedYear()) to current.get(wf.weekBasedYear())
+            val count = activityPerWeek[key] ?: 0
+            if (count >= weeklyGoal) {
+                streak++
+                current = current.minusWeeks(1)
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+
+    /** Best (longest) streak ever for a hobby */
+    fun bestStreak(sessions: List<Session>, events: List<Event>, weeklyGoal: Int): Int {
+        if (weeklyGoal == 0) return 0
+        val zoneId = ZoneId.systemDefault()
+        fun epochToWeek(millis: Long): Pair<Int, Int> {
+            val date = java.time.Instant.ofEpochMilli(millis).atZone(zoneId).toLocalDate()
+            val wf   = java.time.temporal.WeekFields.of(java.util.Locale.getDefault())
+            return date.get(wf.weekOfWeekBasedYear()) to date.get(wf.weekBasedYear())
+        }
+        val activityPerWeek = mutableMapOf<Pair<Int, Int>, Int>()
+        sessions.forEach { s ->
+            val key = epochToWeek(s.timestamp)
+            activityPerWeek[key] = (activityPerWeek[key] ?: 0) + 1
+        }
+        events.forEach { e ->
+            val key = epochToWeek(e.dateTime)
+            activityPerWeek[key] = (activityPerWeek[key] ?: 0) + 1
+        }
+        if (activityPerWeek.isEmpty()) return 0
+
+        // Sort weeks chronologically and find longest consecutive run
+        val sortedWeeks = activityPerWeek.entries
+            .filter { it.value >= weeklyGoal }
+            .map { it.key }
+
+        if (sortedWeeks.isEmpty()) return 0
+
+        var best    = 1
+        var current = 1
+        val sorted  = sortedWeeks.sortedWith(compareBy({ it.second }, { it.first }))
+
+        for (i in 1 until sorted.size) {
+            val prev = sorted[i - 1]
+            val curr = sorted[i]
+            // Check if consecutive (handles year boundary)
+            val prevDate = java.time.LocalDate.now() // placeholder — we just check adjacency
+            val isConsecutive = (curr.second == prev.second && curr.first == prev.first + 1) ||
+                    (curr.second == prev.second + 1 && curr.first == 1 &&
+                            prev.first >= 51)
+            if (isConsecutive) {
+                current++
+                if (current > best) best = current
+            } else {
+                current = 1
+            }
+        }
+        return best
+    }
+
+    // Home screen search + sort state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    fun setSearchQuery(q: String) { _searchQuery.value = q }
+
+    enum class SortOrder { DEFAULT, NAME_ASC, MOST_ACTIVE }
+    private val _sortOrder = MutableStateFlow(SortOrder.DEFAULT)
+    val sortOrder: StateFlow<SortOrder> = _sortOrder
+    fun setSortOrder(order: SortOrder) { _sortOrder.value = order }
 }

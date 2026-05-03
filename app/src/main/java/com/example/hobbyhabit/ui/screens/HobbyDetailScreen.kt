@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -96,7 +97,8 @@ fun HobbyDetailScreen(
     hobbyId: Int,
     viewModel: HobbyViewModel,
     onBack: () -> Unit,
-    onFindEvents: (String, String) -> Unit
+    onFindEvents: (String, String) -> Unit,
+    onViewStats: () -> Unit = {}
 ) {
     val hobby          by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
     val sessions       by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
@@ -152,6 +154,9 @@ fun HobbyDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onViewStats) {
+                        Icon(Icons.Default.BarChart, contentDescription = "Stats")
+                    }
                     IconButton(onClick = { hobby?.let { onFindEvents(it.name, it.category) } }) {
                         Icon(Icons.Default.Event, contentDescription = "Find Events")
                     }
