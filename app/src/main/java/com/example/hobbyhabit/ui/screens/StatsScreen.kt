@@ -59,7 +59,9 @@ fun StatsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${hobby?.name ?: ""} Stats") },
+                title = { Text(
+                    text ="${hobby?.name ?: ""} Stats",                     fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
