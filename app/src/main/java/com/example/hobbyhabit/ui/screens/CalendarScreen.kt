@@ -116,9 +116,17 @@ fun CalendarScreen(viewModel: HobbyViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calendar") },
+                title = {
+                    Text(
+                        text = "Calendar",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold ,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary
+
                 )
             )
         }

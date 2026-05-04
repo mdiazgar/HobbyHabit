@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.example.hobbyhabit.BuildConfig
 import com.example.hobbyhabit.data.remote.TicketmasterEvent
@@ -107,7 +108,11 @@ fun EventsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("$hobbyName Events") },
+                title = { Text(
+                    text ="$hobbyName Events",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold ,
+                ) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -379,7 +384,7 @@ fun TicketmasterEventCard(
                 Button(
                     onClick  = onRegister,
                     modifier = Modifier.weight(1f)
-                ) { Text("I Registered ✓") }
+                ) { Text("Add to Hobby") }
             }
         }
     }

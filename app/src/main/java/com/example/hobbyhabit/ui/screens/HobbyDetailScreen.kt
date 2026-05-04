@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.hobbyhabit.data.local.Event
@@ -153,7 +154,10 @@ fun HobbyDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(hobby?.name ?: "", fontWeight = FontWeight.Bold) },
+                title = { Text(hobby?.name ?: "",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                    ) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
