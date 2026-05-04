@@ -69,6 +69,9 @@ class HobbyRepository(
             sessions + events
         }
     }
+    suspend fun updateHobby(hobby: Hobby) {
+        hobbyDao.updateHobby(hobby)
+    }
 
     private fun weekStartMillis(): Long =
         Calendar.getInstance().apply {

@@ -53,7 +53,11 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     fun getTotalWeeklyActivity(hobbyId: Int): Flow<Int> =
         repository.getWeeklyActivityCount(hobbyId)
 
-
+    fun updateHobby(hobby: Hobby) {
+        viewModelScope.launch {
+            repository.updateHobby(hobby)
+        }
+    }
 
     fun deleteSession(session: Session) {
         viewModelScope.launch { repository.deleteSession(session) }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -73,7 +74,7 @@ fun HomeScreen(
     val allEvents by viewModel.allEvents.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortOrder by viewModel.sortOrder.collectAsState()
-
+    var editingHobby by remember { mutableStateOf<Hobby?>(null) }
     var showSortMenu by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
     var hobbyToDelete by remember { mutableStateOf<Hobby?>(null) }
@@ -293,11 +294,29 @@ fun HomeScreen(
                         },
                         onDelete = {
                             hobbyToDelete = hobby
+                        },
+                        onEdit = {
+                             editingHobby = it
                         }
+
                     )
                 }
             }
         }
+    }
+    editingHobby?.let { hobby ->
+        EditHobbyDialog(
+            hobby = hobby,
+            onDismiss = { editingHobby = null },
+            onSave = { newName, newGoal ->
+                // update in ViewModel / DB
+                viewModel.updateHobby(hobby.copy(
+                    name = newName,
+                    weeklyGoal = newGoal
+                ))
+                editingHobby = null
+            }
+        )
     }
 
     hobbyToDelete?.let { hobby ->
@@ -350,7 +369,8 @@ private fun HobbyCard(
     weeklyCount: Int,
     streak: Int,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: (Hobby) -> Unit
 ) {
     val progress = (weeklyCount.toFloat() / hobby.weeklyGoal.coerceAtLeast(1))
         .coerceIn(0f, 1f)
@@ -443,6 +463,22 @@ private fun HobbyCard(
                     ) {
                         DropdownMenuItem(
                             text = {
+                                Text("Edit")
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onEdit(hobby)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
                                 Text(
                                     text = "Delete",
                                     color = MaterialTheme.colorScheme.error
@@ -461,6 +497,7 @@ private fun HobbyCard(
                                 onDelete()
                             }
                         )
+
                     }
                 }
             }
@@ -553,4 +590,51 @@ private fun EmptyState(
             )
         }
     }
+}
+
+@Composable
+fun EditHobbyDialog(
+    hobby: Hobby,
+    onDismiss: () -> Unit,
+    onSave: (String, Int) -> Unit
+) {
+    var name by remember { mutableStateOf(hobby.name) }
+    var goal by remember { mutableStateOf(hobby.weeklyGoal.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val goalInt = goal.toIntOrNull() ?: 1
+                    onSave(name, goalInt)
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = { Text("Edit Hobby") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Hobby Name") }
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = goal,
+                    onValueChange = { goal = it },
+                    label = { Text("Weekly Goal") }
+                )
+            }
+        }
+    )
 }

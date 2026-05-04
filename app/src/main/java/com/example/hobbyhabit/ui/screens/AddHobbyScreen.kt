@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 
 // Map of display name → Ticketmaster classificationName
@@ -65,7 +66,10 @@ fun AddHobbyScreen(viewModel: HobbyViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Hobby") },
+                title = { Text(
+                    text ="New Hobby",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
