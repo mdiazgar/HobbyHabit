@@ -53,25 +53,7 @@ class HobbyViewModel(application: Application) : AndroidViewModel(application) {
     fun getTotalWeeklyActivity(hobbyId: Int): Flow<Int> =
         repository.getWeeklyActivityCount(hobbyId)
 
-    fun getWeeklyActivityCount(hobbyId: Int): Flow<Int> =
-        repository.getWeeklyActivityCount(hobbyId)
 
-    fun logSession(
-        hobbyId: Int,
-        durationMinutes: Int,
-        notes: String,
-        dateTime: LocalDateTime? = null
-    ) {
-        viewModelScope.launch {
-            val timestamp = dateTime
-                ?.atZone(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-                ?: System.currentTimeMillis()
-            repository.logSession(
-                Session(hobbyId = hobbyId, durationMinutes = durationMinutes,
-                    notes = notes, timestamp = timestamp)
-            )
-        }
-    }
 
     fun deleteSession(session: Session) {
         viewModelScope.launch { repository.deleteSession(session) }

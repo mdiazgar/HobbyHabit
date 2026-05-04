@@ -35,6 +35,15 @@ interface EventDao {
     fun getEventsForDay(dayStart: Long, dayEnd: Long): Flow<List<Event>>
 
     // Weekly count — only past events this week
-    @Query("SELECT COUNT(*) FROM events WHERE hobbyId = :hobbyId AND dateTime >= :weekStart AND dateTime <= :now")
-    fun getWeeklyEventCount(hobbyId: Int, weekStart: Long, now: Long): Flow<Int>
+    @Query("""
+    SELECT COUNT(*) 
+    FROM events 
+    WHERE hobbyId = :hobbyId
+    AND dateTime BETWEEN :weekStart AND :now
+""")
+    fun getWeeklyEventCount(
+        hobbyId: Int,
+        weekStart: Long,
+        now: Long
+    ): Flow<Int>
 }

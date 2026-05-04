@@ -272,7 +272,10 @@ fun HomeScreen(
                     items = filteredHobbies,
                     key = { it.id }
                 ) { hobby ->
-                    val weeklyCount = weeklyCountMap[hobby.id] ?: 0
+
+                    val weeklyCount by viewModel
+                        .getTotalWeeklyActivity(hobby.id)
+                        .collectAsState(initial = 0)
                     val sessions = allSessions.filter { it.hobbyId == hobby.id }
                     val events = allEvents.filter { it.hobbyId == hobby.id }
                     val streak = viewModel.currentStreak(
