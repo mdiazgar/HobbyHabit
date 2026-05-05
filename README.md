@@ -33,8 +33,11 @@ Room (local DB)    Retrofit (Eventbrite API)
 ## Screens
 
 **Home** — Lists all hobbies with a live weekly progress bar for each. FAB navigates to Add Hobby.
+
 **Add Hobby** — Form to create a new hobby with a name and a weekly session goal. Input validation included.
+
 **Hobby Detail** — Shows weekly progress card, full session history, and options to log, edit, or delete sessions. Calendar and time pickers for session date/time. Tap the event icon in the top bar to find local events.
+
 **Events** — Requests location permission, fetches nearby hobby-related events from the Eventbrite API, and displays them in a list with date and venue information.
 
 ## AI Disclaimer
