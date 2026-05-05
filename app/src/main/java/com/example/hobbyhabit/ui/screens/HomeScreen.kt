@@ -428,7 +428,8 @@ private fun HobbyCard(
                     ) {
                         Text(
                             text = "🔥",
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
+
                         )
 
                         Spacer(Modifier.width(2.dp))
@@ -437,7 +438,7 @@ private fun HobbyCard(
                             text = "$streak",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.tertiary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
