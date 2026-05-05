@@ -2,8 +2,6 @@ package com.example.hobbyhabit.ui.screens
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -23,40 +20,28 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import com.example.hobbyhabit.data.local.Hobby
-import com.example.hobbyhabit.data.local.Session
-import java.io.File
-import java.io.FileOutputStream
-
-// ── Shareable card composable ───────────────────────────────────────────────
 
 @Composable
 fun ShareProgressCard(
     hobby: Hobby,
-    sessions: List<Session>,
-    weeklyCount: Int,
+    weeklyCount: Int,       // this week only, past events only — from getTotalWeeklyActivity
     streak: Int,
+    totalMins: Int,         // all-time: sessions + past event minutes
+    totalActivities: Int,   // all-time: sessions + past user events
     onShare: () -> Unit
 ) {
-    val totalMins = sessions.sumOf { it.durationMinutes }
-    val progress  = (weeklyCount.toFloat() / hobby.weeklyGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
+    val progress = (weeklyCount.toFloat() / hobby.weeklyGoal.coerceAtLeast(1)).coerceIn(0f, 1f)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        // The card that will be shared
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
+            modifier  = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             shape     = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors    = CardDefaults.cardColors(
@@ -71,12 +56,15 @@ fun ShareProgressCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("HobbyHabit", style = MaterialTheme.typography.labelSmall,
+                        Text("HobbyHabit",
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
-                        Text(hobby.name, style = MaterialTheme.typography.titleLarge,
+                        Text(hobby.name,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Text(hobby.category, style = MaterialTheme.typography.labelMedium,
+                        Text(hobby.category,
+                            style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
                     }
                     Text(categoryEmoji(hobby.category), fontSize = 40.sp)
@@ -97,7 +85,7 @@ fun ShareProgressCard(
                     Spacer(Modifier.height(12.dp))
                 }
 
-                // Weekly progress bar
+                // Weekly progress bar — matches HobbyDetailScreen exactly
                 Text("This week: $weeklyCount / ${hobby.weeklyGoal} sessions",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -112,18 +100,17 @@ fun ShareProgressCard(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Stats row
+                // Stats row — uses passed-in values, never recalculates internally
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    MiniStat("📋", "${sessions.size}", "Sessions")
+                    MiniStat("📋", "$totalActivities", "Sessions")
                     MiniStat("⏱️", formatMins(totalMins), "Total time")
                 }
 
                 Spacer(Modifier.height(16.dp))
 
-                // Footer
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -142,11 +129,9 @@ fun ShareProgressCard(
         Spacer(Modifier.height(20.dp))
 
         Button(
-            onClick   = onShare,
-            modifier  = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-        ) {
-            Text("Share Progress 🚀")
-        }
+            onClick  = onShare,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+        ) { Text("Share Progress 🚀") }
     }
 }
 
@@ -154,19 +139,21 @@ fun ShareProgressCard(
 private fun MiniStat(emoji: String, value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(emoji, fontSize = 20.sp)
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+        Text(value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimaryContainer)
-        Text(label, style = MaterialTheme.typography.labelSmall,
+        Text(label,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f))
     }
 }
 
 private fun formatMins(mins: Int): String = when {
+    mins == 0 -> "—"
     mins < 60 -> "${mins}m"
     else      -> "${mins / 60}h ${mins % 60}m"
 }
-
-// ── Share intent helper ─────────────────────────────────────────────────────
 
 fun shareTextProgress(
     context: Context,
@@ -188,7 +175,7 @@ Tracked with HobbyHabit 📱
     """.trimIndent()
 
     val intent = Intent(Intent.ACTION_SEND).apply {
-        type    = "text/plain"
+        type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, text)
     }
     context.startActivity(Intent.createChooser(intent, "Share your progress"))

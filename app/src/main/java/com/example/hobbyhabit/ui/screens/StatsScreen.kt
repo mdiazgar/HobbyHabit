@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,20 +20,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.hobbyhabit.data.local.Event
+import com.example.hobbyhabit.data.local.Session
 import com.example.hobbyhabit.ui.viewmodel.HobbyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,24 +41,38 @@ fun StatsScreen(
     viewModel: HobbyViewModel,
     onBack: () -> Unit
 ) {
-    val hobby    by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
-    val sessions by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
-    val events   by viewModel.getEventsForHobby(hobbyId).collectAsState(initial = emptyList())
-    val context  = LocalContext.current
+    val hobby        by viewModel.getHobbyById(hobbyId).collectAsState(initial = null)
+    val sessions     by viewModel.getSessionsForHobby(hobbyId).collectAsState(initial = emptyList())
+    val events       by viewModel.getEventsForHobby(hobbyId).collectAsState(initial = emptyList())
+    // Use the same flow as HobbyDetailScreen so progress bar is always identical
+    val weeklyCount  by viewModel.getTotalWeeklyActivity(hobbyId).collectAsState(initial = 0)
+    val context      = LocalContext.current
 
-    val totalMins  = viewModel.totalMinutes(sessions)
-    val avgMins    = viewModel.avgMinutes(sessions)
+    // ── Combine sessions + past events for all stats ──────────────────
+    val now        = System.currentTimeMillis()
+    val pastEvents = events.filter { it.dateTime <= now }  // only events that have happened
+
+    // "Sessions Logged" = manual sessions + USER-sourced past events
+    val userEvents     = pastEvents.filter { it.source == com.example.hobbyhabit.data.local.EventSource.USER }
+    val tmEvents       = pastEvents.filter { it.source == com.example.hobbyhabit.data.local.EventSource.TICKETMASTER }
+
+    val sessionsLogged = sessions.size + userEvents.size
+    val eventsAttended = tmEvents.size
+
+    // Total time = sessions + all past events
+    val totalMins      = sessions.sumOf { it.durationMinutes } +
+            pastEvents.sumOf { it.durationMinutes ?: 0 }
+
+    val totalActivities = sessionsLogged + eventsAttended
+    val avgMins         = if (totalActivities == 0) 0 else totalMins / totalActivities
+
     val streak     = viewModel.currentStreak(sessions, events, hobby?.weeklyGoal ?: 1)
     val bestStreak = viewModel.bestStreak(sessions, events, hobby?.weeklyGoal ?: 1)
-
-    var showShareCard by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(
-                    text ="${hobby?.name ?: ""} Stats",                     fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold) },
+                title = { Text("${hobby?.name ?: ""} Stats") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -78,7 +89,7 @@ fun StatsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Streak card — centred
+            // Streak card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -87,24 +98,20 @@ fun StatsScreen(
                     )
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(20.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Text("🔥", fontSize = 40.sp)
-
                         Spacer(Modifier.height(4.dp))
-
                         Text(
-                            text = "$streak week streak",
+                            "$streak week streak",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-
                         Text(
-                            text = "Best: $bestStreak weeks",
+                            "Best: $bestStreak weeks",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -118,11 +125,12 @@ fun StatsScreen(
                     fontWeight = FontWeight.SemiBold)
             }
 
+            // Stats grid
             item {
                 Row(modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    StatCard(Modifier.weight(1f), "Total Sessions", "${sessions.size}", "📋")
-                    StatCard(Modifier.weight(1f), "Events Attended", "${events.size}", "🎟️")
+                    StatCard(Modifier.weight(1f), "Sessions Logged", "$sessionsLogged", "📋")
+                    StatCard(Modifier.weight(1f), "Events Attended", "$eventsAttended", "🎟️")
                 }
             }
 
@@ -130,7 +138,7 @@ fun StatsScreen(
                 Row(modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(Modifier.weight(1f), "Total Time", formatMinutes(totalMins), "⏱️")
-                    StatCard(Modifier.weight(1f), "Avg Session", formatMinutes(avgMins), "📊")
+                    StatCard(Modifier.weight(1f), "Avg Activity", formatMinutes(avgMins), "📊")
                 }
             }
 
@@ -138,25 +146,27 @@ fun StatsScreen(
             item {
                 hobby?.let { h ->
                     ShareProgressCard(
-                        hobby        = h,
-                        sessions     = sessions,
-                        weeklyCount  = sessions.size, // simplified for stats screen
-                        streak       = streak,
-                        onShare      = {
+                        hobby           = h,
+                        weeklyCount     = weeklyCount,
+                        streak          = streak,
+                        totalMins       = totalMins,
+                        totalActivities = sessionsLogged,
+                        onShare         = {
                             shareTextProgress(
-                                context        = context,
-                                hobbyName      = h.name,
-                                streak         = streak,
-                                weeklyCount    = sessions.size,
-                                weeklyGoal     = h.weeklyGoal,
-                                totalSessions  = sessions.size
+                                context       = context,
+                                hobbyName     = h.name,
+                                streak        = streak,
+                                weeklyCount   = weeklyCount,
+                                weeklyGoal    = h.weeklyGoal,
+                                totalSessions = sessionsLogged
                             )
                         }
                     )
                 }
             }
 
-            // Monthly breakdown
+
+            // Monthly breakdown — combines sessions + events
             item {
                 Spacer(Modifier.height(4.dp))
                 Text("Monthly Breakdown",
@@ -164,10 +174,10 @@ fun StatsScreen(
                     fontWeight = FontWeight.SemiBold)
             }
 
-            val monthlyData = getMonthlyBreakdown(sessions)
+            val monthlyData = getMonthlyBreakdown(sessions, pastEvents, userEvents)
             if (monthlyData.isEmpty()) {
                 item {
-                    Text("No sessions yet.",
+                    Text("No activity yet.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -183,7 +193,7 @@ fun StatsScreen(
                             Text(label, style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium)
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("$count sessions",
+                                Text("$count activities",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(formatMinutes(mins),
@@ -216,27 +226,45 @@ private fun StatCard(modifier: Modifier, label: String, value: String, emoji: St
 }
 
 private fun formatMinutes(mins: Int): String = when {
-    mins < 60 -> "${mins}m"
-    else      -> "${mins / 60}h ${mins % 60}m"
+    mins == 0  -> "—"
+    mins < 60  -> "${mins}m"
+    else       -> "${mins / 60}h ${mins % 60}m"
 }
 
 private data class MonthStat(val label: String, val count: Int, val totalMins: Int)
 
-private fun getMonthlyBreakdown(sessions: List<com.example.hobbyhabit.data.local.Session>): List<MonthStat> {
-    val zoneId  = java.time.ZoneId.systemDefault()
-    val grouped = sessions.groupBy { session ->
-        val date = java.time.Instant.ofEpochMilli(session.timestamp)
-            .atZone(zoneId).toLocalDate()
-        java.time.YearMonth.of(date.year, date.monthValue)
+private fun getMonthlyBreakdown(
+    sessions: List<Session>,
+    pastEvents: List<Event>,
+    userEvents: List<Event>  // USER-sourced events count as sessions
+): List<MonthStat> {
+    val zoneId = java.time.ZoneId.systemDefault()
+
+    fun Long.toYearMonth(): java.time.YearMonth {
+        val date = java.time.Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
+        return java.time.YearMonth.of(date.year, date.monthValue)
     }
-    return grouped.entries
-        .sortedByDescending { it.key }
+
+    // Sessions + user events grouped by month (both count as "did the activity")
+    val sessionsByMonth   = sessions.groupBy { it.timestamp.toYearMonth() }
+    val userEventsByMonth = userEvents.groupBy { it.dateTime.toYearMonth() }
+    // All past events for time totals
+    val allEventsByMonth  = pastEvents.groupBy { it.dateTime.toYearMonth() }
+
+    val allMonths = (sessionsByMonth.keys + userEventsByMonth.keys + allEventsByMonth.keys).toSet()
+
+    return allMonths
+        .sortedDescending()
         .take(6)
-        .map { (month, s) ->
+        .map { month ->
+            val monthSessions   = sessionsByMonth[month] ?: emptyList()
+            val monthUserEvents = userEventsByMonth[month] ?: emptyList()
+            val monthAllEvents  = allEventsByMonth[month] ?: emptyList()
             MonthStat(
                 label     = month.format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy")),
-                count     = s.size,
-                totalMins = s.sumOf { it.durationMinutes }
+                count     = monthSessions.size + monthUserEvents.size,
+                totalMins = monthSessions.sumOf { it.durationMinutes } +
+                        monthAllEvents.sumOf { it.durationMinutes ?: 0 }
             )
         }
 }
