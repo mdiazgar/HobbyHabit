@@ -32,7 +32,6 @@ class HobbyRepository(
         return sessionDao.getSessionCountThisWeek(hobbyId, weekStartMillis())
     }
 
-    suspend fun logSession(session: Session) = sessionDao.insertSession(session)
     suspend fun updateSession(session: Session) = sessionDao.updateSession(session)
     suspend fun deleteSession(session: Session) = sessionDao.deleteSession(session)
 
@@ -45,11 +44,6 @@ class HobbyRepository(
     fun getEventCountForHobby(hobbyId: Int): Flow<Int> =
         eventDao.getEventCountForHobby(hobbyId)
 
-    fun getEventsBetween(startMillis: Long, endMillis: Long): Flow<List<Event>> =
-        eventDao.getEventsBetween(startMillis, endMillis)
-
-    fun getEventsForDay(dayStart: Long, dayEnd: Long): Flow<List<Event>> =
-        eventDao.getEventsForDay(dayStart, dayEnd)
 
     suspend fun addEvent(event: Event) = eventDao.insertEvent(event)
     suspend fun updateEvent(event: Event) = eventDao.updateEvent(event)
